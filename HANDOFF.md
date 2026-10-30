@@ -45,12 +45,25 @@ This is where things stand after the session that checked the sync XMLs, before 
 
 Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` and commit.
 
-## After that: milestone 1 (PROJECT.md sections 6 and 9)
-- Build `<ep>_a_cam` / `<ep>_b_cam` (one nest per camera, with Black Video in the gaps), `<ep>_mc` (a multicam of the two nests, with no audio) and the main sequence `classical_et_cetera_<ep>`.
-- **Prototype first and agree the approach with David.** The open choices:
-  - Can the XML carry nested sequences, so the nests and the main sequence come in one import?
-  - Can it carry a multiclip? If not, the multicam source sequence has no script API, so it would be built with PodDirector's keystroke builder.
-  - Or is a stacked V1/V2 cut enough? (Question 1 in section 10.)
+## Milestone 1: the nested multicam (branch `feature/assemble-multicam`)
+- **David chose a real, re-switchable nested multicam**, not a stacked V1/V2 cut.
+- **It's a distinct part of the plugin.** `podassembler sync` writes only the sync XML again. The multicam is its own command and module:
+  ```
+  node cli/podassembler.js assemble "M:\@PRODUCTION\memoria_press\video\#serial\classical_et_cetera\2026\20261012_243_mailbag"
+  ```
+  - `engine/assemble.js` builds it, writing through the shared helpers in `engine/xmeml.js`.
+  - Output: `C:\Users\david.ward\Documents\PodAssembler\assemble\classical_et_cetera_<ep>_assembly.xml`.
+  - The file holds the `(Sync)` sequence, the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly), the `<ep>_mc` multiclip of the two with no audio, and the main sequence `classical_et_cetera_<ep>` with `_mc` on V1 and mics 1–4 on A1–A4.
+  - The ep 243 file is made. It's byte-identical to the first prototype, and the sync XML is unchanged.
+  - The older `..._assembly.xml` files in `PodAssembler\sync\` are from before the split. Use the ones in `assemble\`.
+- **Next: David imports `assemble\classical_et_cetera_243_assembly.xml` into a scratch project.** Check:
+  1. Does `243_mc` come in as a real multicam? It should right-click → Multi-Camera → Enable, and switch angles in the Program Monitor.
+  2. Do `243_b_cam` and `243_a_cam` show in the bin as sequences, with the clips at the synced positions?
+  3. Is the main sequence `classical_et_cetera_243` there, with `_mc` on V1 and mono mics on A1–A4 in sync?
+- **If the multiclip doesn't survive the import:**
+  - Keep the nests from the XML.
+  - Build `_mc` with PodDirector's keystroke builder (Create Multi-Camera Source Sequence has no script API).
+- **Not done yet:** Black Video in the nests' gaps, the way David's own nests have it. Add it if the multicam needs it.
 
 ## Reminders
 - The M: drive is read-only. Never write to it.

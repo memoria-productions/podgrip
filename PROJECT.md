@@ -330,7 +330,8 @@ Existing data to start from (on David's PC):
    - **Checked in Premiere 2025, 2026-10-30:** David imported the ep 243 XML. The footage and audio are synced perfectly and nothing came in offline.
    - **Still to do:** run it on the next shoot alongside Resolve.
 1. **Prototype the Premiere side (1 week).** Generate an FCP7 XML for ep 243 with the stacked camera cut, mics, graphics, music and markers, and import it. Decide XML vs ExtendScript vs UXP, and whether the multicam step is needed.
-   - **First prototype, 2026-10-30:** `podassembler sync` also writes `classical_et_cetera_<ep>_assembly.xml` (`xmeml.assembly`).
+   - **David's choice, 2026-10-30:** a real, re-switchable **nested multicam** (question 1 in section 10). It's its own step of the plugin, separate from sync: `podassembler assemble <episode folder>` (`engine/assemble.js`).
+   - **First prototype, 2026-10-30:** `podassembler assemble` writes `<WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml`.
      - It holds the `(Sync)` sequence, the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly), and the `<ep>_mc` multiclip with the wide as angle 1.
      - The main sequence `classical_et_cetera_<ep>` has `_mc` on V1 and mics 1–4 on A1–A4.
      - The nests are named the way David names them: in every past edit, `b_cam` is the wide.

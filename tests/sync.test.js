@@ -2,22 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const S = require("../engine/sync.js"), XM = require("../engine/xmeml.js"), X = require("../engine/xml.js");
-
-const tc = (h, m, s, f) => ((h * 60 + m) * 60 + s) * 24 + (f || 0);
-const WIDE = "24-70mm F2.8 DG DN | Art 019", TELE = "70-200mm F2.8 DG OS HSM | Sport";
-const wav = (name, t, frames, extra) => Object.assign({ kind: "wav", name, path: "M:/ep/sync_sound/" + name, date: "261012",
-  take: Number(name.slice(7, 10)), part: name.length > 15 ? Number(name.slice(11, 15)) : 1, tc: t, frames, channels: 5 }, extra);
-const cam = (name, body, lens, t, frames) => ({ kind: "camera", name, path: "M:/ep/footage/" + name, body, lens, tc: t, frames });
-
-// Episode 243 as shot: the F6 clock crosses midnight; a 2-part main take and a short second take.
-const ep243 = () => [
-  wav("261012_001_0001.WAV", tc(23, 59, 56), 53616),
-  wav("261012_001_0002.WAV", tc(0, 37, 10), 20736),
-  wav("261012_002.WAV", tc(0, 54, 12), 2952),
-  cam("20261012_A7S3-3_5218.MP4", "A7S3-3", TELE, tc(0, 0, 1, 2), 74148),
-  cam("20261012_A7S3-3_5219.MP4", "A7S3-3", TELE, tc(0, 54, 15, 10), 2796),
-  cam("20261012_A7S3_1_5524.MP4", "A7S3_1", WIDE, tc(23, 59, 59, 14), 74220)
-];
+const { tc, WIDE, TELE, wav, cam, ep243 } = require("./ep243.js");
 
 test("sync: lays clips out by timecode across midnight, like David's Resolve export of ep 243", () => {
   const p = S.plan(ep243(), { date: "261012" });
@@ -83,30 +68,6 @@ test("xmeml: writes a sequence Premiere can read: tracks, files once, linked aud
   assert.ok(files.every((f) => full.some((g) => g.attrs.id === f.attrs.id)));
   assert.equal(X.textOf(full.find((f) => /5524/.test(f.attrs.id)), "timecode/string"), "23:59:59:14");
   assert.equal(X.textOf(seq, "marker/name"), "Check");
-});
-
-test("xmeml: the assembly holds the synced sequence, the camera nests, the multicam and the main sequence", () => {
-  const p = S.plan(ep243(), { date: "261012" });
-  assert.deepEqual(XM.nestNames(p, "243"), ["243_b_cam", "243_a_cam"]);   // David's names: b = wide, a = dolly
-  const doc = X.parse(XM.assembly(p, { ep: "243", name: "classical_et_cetera_243 (Sync)" }));
-  const seqs = X.kids(X.child(doc, "xmeml"), "sequence");
-  assert.deepEqual(seqs.map((s) => X.textOf(s, "name")), ["classical_et_cetera_243 (Sync)", "classical_et_cetera_243"]);
-  const main = seqs[1], mc = X.child(main, "media/video/track/clipitem/multiclip");
-  assert.equal(X.textOf(mc, "name"), "243_mc");
-  const angles = X.kids(mc, "angle");
-  assert.deepEqual(angles.map((a) => X.textOf(a, "name")), ["243_b_cam", "243_a_cam"]);
-  assert.equal(X.textOf(angles[0], "activevideoangle"), "TRUE");
-  const nest = X.child(angles[1], "clip/media/video/track/clipitem/sequence");
-  assert.equal(X.textOf(nest, "name"), "243_a_cam");
-  assert.equal(X.kids(X.child(nest, "media/audio"), "track").length, 0, "the nests carry no audio");
-  assert.deepEqual(X.kids(X.child(nest, "media/video/track"), "clipitem").map((c) => X.textOf(c, "start")),
-    p.video[1].clips.map((c) => String(c.start)), "camera clips keep their synced positions");
-  const audio = X.kids(X.child(main, "media/audio"), "track");
-  assert.equal(audio.length, 4, "mics 1–4 on A1–A4; the empty channel 5 left off");
-  assert.equal(X.kids(X.kids(audio[0], "clipitem")[0], "link").length, 4);
-  const ids = X.all(doc, "clipitem").map((c) => c.attrs.id);
-  assert.equal(new Set(ids).size, ids.length, "clipitem ids are unique across the document");
-  assert.equal(X.all(doc, "file").filter((f) => f.children.length).length, 6, "each file defined once");
 });
 
 test("xmeml: path URLs are escaped the way Resolve writes them", () => {

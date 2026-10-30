@@ -6,10 +6,7 @@
  *   A1, A2…  one F6 channel per track (A1–A4 = the four mics, as in the finished edit), every channel of a WAV
  *            linked so they move together
  *   markers  for anything placed without timecode
- * assembly(plan): the synced sequence plus David's chain built on it (PROJECT.md section 2):
- *   <ep>_b_cam, <ep>_a_cam (, <ep>_c_cam)   one nest per camera: b = the wide, a = the dolly, as David names them
- *   <ep>_mc                                 a multicam (multiclip) of the nests, no audio, the wide as angle 1
- *   classical_et_cetera_<ep>                the multicam on V1, mic channels 1–4 on A1–A4
+ * Doc / open / syncSequence are shared with engine/assemble.js, which builds the multicam chain on this sequence.
  * 23.976 fps (timebase 24, NTSC), 1920x1080, 48 kHz.
  */
 (function (root, factory) {
@@ -183,62 +180,5 @@
     return doc.text();
   }
 
-  /** David's names for the camera nests: the wide is b_cam, the dolly a_cam, any further camera c_cam, d_cam… */
-  function nestNames(plan, ep) {
-    var others = ["a", "c", "d", "e", "f"], k = 0;
-    return plan.video.map(function (t, i) { return ep + "_" + (i === 0 && t.wide ? "b" : others[k++]) + "_cam"; });
-  }
-
-  /**
-   * assembly(plan, opts) -> XML string with the synced sequence, the camera nests, the multicam and the main
-   * sequence.  opts.ep: episode id ("243");  opts.name / opts.markers: for the synced sequence;
-   * opts.mics: mic channels on the main sequence (4).
-   */
-  function assembly(plan, opts) {
-    opts = opts || {};
-    var doc = Doc(opts), ep = opts.ep || "ep", dur = plan.durationFrames, mics = Math.min(opts.mics || 4, plan.channels);
-    var names = nestNames(plan, ep), mc = ep + "_mc";
-    open(doc);
-    syncSequence(doc, plan, opts, "sequence-sync");
-
-    function angle(d, t, i) {
-      var nest = names[i];
-      doc.line(d, "<angle>");
-      doc.line(d + 1, "<name>" + esc(nest) + "</name>");
-      if (i === 0) doc.line(d + 1, "<activevideoangle>TRUE</activevideoangle>");
-      doc.line(d + 1, "<clip id=\"" + esc(nest + " clip") + "\">");
-      doc.line(d + 2, "<name>" + esc(nest) + "</name>");
-      doc.line(d + 2, "<duration>" + dur + "</duration>");
-      doc.line(d + 2, RATE);
-      doc.line(d + 2, "<media><video><track>");
-      doc.wrapItem(d + 3, nest + " item", nest, dur, function (dd) {
-        doc.sequence(dd, {
-          id: nest, name: nest, dur: dur, audio: null,
-          video: [function (depth) { t.clips.forEach(function (c) { doc.clipItem(depth, nest + " " + c.name, c); }); }]
-        });
-      });
-      doc.line(d + 2, "</track></video></media>");
-      doc.line(d + 1, "</clip>");
-      doc.line(d, "</angle>");
-    }
-
-    doc.sequence(1, {
-      id: "sequence-main", name: "classical_et_cetera_" + ep, dur: dur,
-      video: [function (depth) {
-        doc.wrapItem(depth, mc + " item", mc, dur, function (d) {
-          doc.line(d, "<multiclip id=\"" + esc(mc) + "\">");
-          doc.line(d + 1, "<name>" + esc(mc) + "</name>");
-          doc.line(d + 1, "<collapsed>FALSE</collapsed>");
-          doc.line(d + 1, "<synctype>0</synctype>");
-          plan.video.forEach(function (t, i) { angle(d + 1, t, i); });
-          doc.line(d, "</multiclip>");
-        });
-      }],
-      audio: doc.micTracks(plan, mics, "main ")
-    });
-    doc.line(0, "</xmeml>");
-    return doc.text();
-  }
-
-  return { write: write, assembly: assembly, nestNames: nestNames, pathUrl: pathUrl, tcString: tcString };
+  return { RATE: RATE, esc: esc, Doc: Doc, open: open, syncSequence: syncSequence, write: write, pathUrl: pathUrl, tcString: tcString };
 });

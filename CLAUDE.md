@@ -4,9 +4,12 @@ PodAssembler is a Premiere Pro plugin (planned) that assembles a whole Classical
 
 ## Layout
 - PodAssembler's own code:
-  - `engine/ltc.js`, `bwf.js`, `sync.js`, `xmeml.js` and `xml.js` (pure, UMD);
+  - `engine/ltc.js`, `bwf.js`, `sync.js`, `xmeml.js`, `xml.js` and `assemble.js` (pure, UMD);
   - `lib/` (Node-only helpers, such as `episode.js`);
-  - `cli/podassembler.js` (`timecode`, `sync`).
+  - `cli/podassembler.js` (`timecode`, `sync`, `assemble`).
+- The plugin's steps stay distinct, each with its own module and command:
+  - `sync`: the timecode layout, written by `xmeml.js`;
+  - `assemble`: the nested multicam chain built on it, `assemble.js`.
 - The other `engine/*.js` files, plus `tools/prproj.js` and `tools/analyze_past.js`, are **copied from PodDirector** (`../#poddirector`, https://github.com/memoria-productions/poddirector).
   - Don't edit the copies here. Change them in PodDirector, then run `npm run sync-poddirector`.
   - `engine/PODDIRECTOR.txt` records the source commit.

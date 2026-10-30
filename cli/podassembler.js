@@ -6,13 +6,16 @@
  *   podassembler sync <episode folder> [--out file.xml] [--gap seconds]
  *       lays the cameras and F6 audio out by timecode and writes an FCP7 XML sequence for Premiere, in place of the
  *       Resolve round trip. Default output: <WORK_DIR>\sync\classical_et_cetera_<ep>_sync.xml
- *       Also writes classical_et_cetera_<ep>_assembly.xml next to it: the same sequence plus the camera nests
- *       (<ep>_b_cam = wide, <ep>_a_cam = dolly), the <ep>_mc multicam and the main sequence classical_et_cetera_<ep>.
+ *   podassembler assemble <episode folder> [--out file.xml] [--gap seconds]
+ *       the synced sequence plus the multicam chain built on it: the camera nests (<ep>_b_cam = wide,
+ *       <ep>_a_cam = dolly), the <ep>_mc multicam and the main sequence classical_et_cetera_<ep>.
+ *       Default output: <WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml
  */
 "use strict";
 const fs = require("fs"), path = require("path");
 const L = require("../engine/ltc.js"), B = require("../engine/bwf.js");
-const S = require("../engine/sync.js"), XM = require("../engine/xmeml.js"), E = require("../lib/episode.js");
+const S = require("../engine/sync.js"), XM = require("../engine/xmeml.js"), A = require("../engine/assemble.js");
+const E = require("../lib/episode.js");
 const PATHS = require("../tools/paths.js");
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -45,19 +48,15 @@ function timecode(targets) {
 
 function opt(args, k, d) { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; }
 
-function sync(args) {
+/** Read an episode folder and lay it out by timecode; prints what went where. Shared by sync and assemble. */
+function synced(args, usage) {
   const dir = args.find((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--")));
-  if (!dir || !fs.existsSync(dir)) { console.error("usage: podassembler sync <episode folder> [--out file.xml] [--gap seconds]"); process.exit(1); }
+  if (!dir || !fs.existsSync(dir)) { console.error("usage: " + usage); process.exit(1); }
   const ep = E.read(dir, PATHS.FFMPEG, (m) => process.stderr.write(m + "\n"));
   const plan = S.plan(ep.clips, { date: ep.f6Date, gapFrames: Math.round(Number(opt(args, "--gap", 2)) * 24) });
   const id = ep.ep || ep.slug, name = "classical_et_cetera_" + id + " (Sync)";
   const markers = plan.video.flatMap((t) => t.clips).filter((c) => c.unsynced)
     .map((c) => ({ frame: c.start, name: "Not synced: " + c.name, comment: "No timecode on this clip's audio, or it overlaps none of the F6 audio. Line it up by hand." }));
-  const out = opt(args, "--out", path.join(PATHS.WORK_DIR, "sync", "classical_et_cetera_" + id + "_sync.xml"));
-  fs.mkdirSync(path.dirname(out), { recursive: true });
-  fs.writeFileSync(out, XM.write(plan, { name, markers }));
-  const asm = out.replace(/(_sync)?\.xml$/i, "_assembly.xml");
-  fs.writeFileSync(asm, XM.assembly(plan, { ep: id, name, markers }));
 
   const min = (f) => (f / 24 * 1.001 / 60).toFixed(1) + " min";
   console.log("\n" + name + ": " + min(plan.durationFrames));
@@ -65,13 +64,33 @@ function sync(args) {
     t.clips.map((c) => c.name + (c.unsynced ? " NOT SYNCED" : " @" + L.format(c.tc))).join(", ")));
   console.log("  A1-A" + plan.channels + "  " + plan.takes.map((t) => "take " + t.take + ": " + t.wavs.map((w) => w.name).join(" + ")).join("; "));
   plan.warnings.forEach((w) => console.log("  ! " + w));
-  console.log("Wrote " + out);
-  console.log("Wrote " + asm + "  (" + XM.nestNames(plan, id).join(", ") + ", " + id + "_mc, classical_et_cetera_" + id + ")");
+  return { plan, id, name, markers };
 }
 
+function writeOut(file, text) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, text);
+  console.log("Wrote " + file);
+}
+
+function sync(args) {
+  const { plan, id, name, markers } = synced(args, "podassembler sync <episode folder> [--out file.xml] [--gap seconds]");
+  writeOut(opt(args, "--out", path.join(PATHS.WORK_DIR, "sync", "classical_et_cetera_" + id + "_sync.xml")), XM.write(plan, { name, markers }));
+}
+
+function assemble(args) {
+  const { plan, id, markers } = synced(args, "podassembler assemble <episode folder> [--out file.xml] [--gap seconds]");
+  const n = A.names(plan, id);
+  console.log("  Multicam " + n.mc + " of " + n.nests.join(" + ") + " on V1 of " + n.main + ", mics 1-" + Math.min(4, plan.channels) + " on A1-A" + Math.min(4, plan.channels));
+  writeOut(opt(args, "--out", path.join(PATHS.WORK_DIR, "assemble", "classical_et_cetera_" + id + "_assembly.xml")), A.xml(plan, { ep: id, markers }));
+}
+
+const USAGE = "usage:\n  podassembler timecode <file|episode folder> ...\n  podassembler sync <episode folder> [--out file.xml] [--gap seconds]\n" +
+  "  podassembler assemble <episode folder> [--out file.xml] [--gap seconds]";
 if (cmd === "timecode") timecode(rest);
 else if (cmd === "sync") sync(rest);
+else if (cmd === "assemble") assemble(rest);
 else {
-  console.log("usage:\n  podassembler timecode <file|episode folder> ...\n  podassembler sync <episode folder> [--out file.xml] [--gap seconds]");
+  console.log(USAGE);
   process.exit(cmd ? 1 : 0);
 }
