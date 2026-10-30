@@ -358,6 +358,11 @@ Existing data to start from (on David's PC):
 4. **Teaser picker.** Ranking, scored by how often David's actual teaser lands in the top 3.
 5. **Panel.** A one-page flow (pick the episode folder → check people and cameras → Assemble → review list), using PodDirector's UI patterns and updater.
 6. **First real episode** assembled end to end, with David reviewing. Write his feedback into the rules, as was done for PodDirector.
+7. **Any podcast, not just this one (David, 2026-10-30; next after the panel's first run).**
+   - Name the podcast being worked on, so the hard-coded `classical_et_cetera_…` names, the `###` template and the folder paths come from a show setting instead of a fixed structure for this one show.
+   - Offer a **file storage tree template** for a new show: the episode folder `yyyymmdd_###_title` with `media\captured\footage`, `sync_sound`, `project_files\premiere`, and the shared `#global` assets.
+   - Help new users store and find their podcast's data in a clean, organized way.
+8. **Later, maybe: one extension.** PodCutter and PodGrip could become tabs of a single panel. For now they stay separate, which David finds helpful.
 
 ---
 

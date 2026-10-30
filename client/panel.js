@@ -14,8 +14,8 @@
   var inPremiere = !!window.__adobe_cep__;
   var hasNode = typeof require === "function" && typeof process !== "undefined";
   var path = hasNode ? require("path") : null;
-  var VERSION = "0.1.0", BIN = "PodGrip";
-  var state = { busy: false, extRoot: null, LA: null, E: null, project: null, dir: null, info: null };
+  var VERSION = "?", BIN = "PodGrip";
+  var state = { busy: false, extRoot: null, LA: null, E: null, U: null, update: null, project: null, dir: null, info: null };
 
   function $(id) { return document.getElementById(id); }
   function log(msg) { var el = $("log"); el.textContent += msg + "\n"; el.scrollTop = el.scrollHeight; }
@@ -135,15 +135,43 @@
     }).then(function () { state.busy = false; $("btnBegin").disabled = !state.dir; });
   }
 
+  /** A newer release on GitHub (memoria-productions/podgrip) shows a banner; quiet when offline or up to date. */
+  function checkUpdate() {
+    state.U.check({ current: VERSION }).then(function (r) {
+      if (!r.newer) { r.errors.forEach(function (e) { log("update check: " + e); }); return; }
+      state.update = r.latest;
+      $("updateText").textContent = "PodGrip " + r.latest.version + " is available (you have " + VERSION + ").";
+      $("updateBanner").classList.remove("hidden");
+    });
+  }
+
+  function update() {
+    if (state.busy || !state.update) return;
+    state.busy = true; $("btnUpdate").disabled = true;
+    state.U.install(state.update, function (stage, f) {
+      $("updateText").textContent = { download: "Downloading… " + Math.round((f || 0) * 100) + "%", copy: "Copying…", unpack: "Unpacking…", install: "Installing…", done: "Installed." }[stage] || stage;
+    }, { extensionRoot: state.extRoot }).then(function (r) {
+      $("updateText").textContent = "Updated to " + r.version + ". " + (r.needsRestart ? "Restart Premiere Pro to load it." : "Close and reopen the PodGrip panel to load it.");
+      log("updated to " + r.version);
+    }).catch(function (e) {
+      $("updateText").textContent = "The update didn't install: " + e.message;
+      $("btnUpdate").disabled = false;
+    }).then(function () { state.busy = false; });
+  }
+
   function init() {
-    $("ver").textContent = "v" + VERSION;
     if (!hasNode) { showEpisode("This panel needs Node.js (enabled in its manifest)."); return; }
     state.extRoot = (inPremiere && cs.getExtensionPath()) || path.resolve(__dirname || ".", "..");
+    VERSION = require(path.join(state.extRoot, "lib", "version.js")).VERSION;
+    $("ver").textContent = "v" + VERSION;
     state.LA = require(path.join(state.extRoot, "lib", "assembly.js"));
     state.E = require(path.join(state.extRoot, "lib", "episode.js"));
+    state.U = require(path.join(state.extRoot, "lib", "updater.js"));
     $("btnRefresh").addEventListener("click", function () { if (!state.busy) refresh(); });
     $("btnBegin").addEventListener("click", begin);
+    $("btnUpdate").addEventListener("click", update);
     refresh();
+    checkUpdate();
   }
 
   init();

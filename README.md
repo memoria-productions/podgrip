@@ -26,11 +26,16 @@ Early. What works today:
     3. writes `classical_et_cetera_<ep>_assembly.xml` next to the project;
     4. imports it, with no dialog, into a **PodGrip** bin: `(Sync)`, `promos (Sync)`, the nests `<ep>_b_cam` / `<ep>_a_cam`, and `classical_et_cetera_<ep> (Program)` with the mics on A1–A4.
   - It then tells you the one step left: make `<ep>_mc` from the nests (Create Multi-Camera Source Sequence, In Points) and put it on V1.
-  - Install or update it from this folder with:
+  - **Install:**
+    1. Download `PodGrip-x.y.z-Windows.zip` from the [latest release](https://github.com/memoria-productions/podgrip/releases/latest).
+    2. Unzip it and double-click **Install PodGrip.bat**.
+    3. Restart Premiere.
+
+    After that, the panel offers new releases itself. To install from the source code instead:
     ```
     powershell -ExecutionPolicy Bypass -File install\install.ps1
     ```
-    Then restart Premiere. It uses PodCutter's bundled ffmpeg.
+    That copy uses PodCutter's ffmpeg unless you run `scripts/fetch-vendor.sh` first.
 
 - **`podgrip timecode <file|episode folder>`** prints the timecode of every camera clip and F6 WAV. Cameras are read from the LTC the F6 feeds into their audio; WAVs from their BWF header. It matches Resolve's timecode on 120 of 125 camera clips and all 112 WAVs from 2026.
 - **`podgrip sync <episode folder> [--out file.xml] [--gap seconds]`** does what the Resolve round trip does today:
@@ -62,7 +67,9 @@ Next: the panel making `<ep>_mc` too, then placing the program, graphics and out
 | `lib/episode.js` | Reads an episode folder: clips, sidecars, timecode (Node). |
 | `lib/assembly.js` | "Begin episode assembly": finds the episode, syncs, writes the XML. Shared by the panel and the CLI. |
 | `CSXS/`, `client/`, `host/host.jsx` | The Premiere panel: manifest, page and controller, and the ExtendScript that renames and imports. |
-| `install/install.ps1` | Installs the panel into `%APPDATA%\Adobe\CEP\extensions\PodGrip`. |
+| `install/` | The installer (`install.ps1`, plus `Install PodGrip.bat` / `Uninstall PodGrip.bat`), into `%APPDATA%\Adobe\CEP\extensions\PodGrip`. |
+| `lib/version.js`, `lib/updater.js` | The version, and the in-panel updater (GitHub releases of `memoria-productions/podgrip`, or an update folder). |
+| `scripts/`, `.github/workflows/build.yml` | Packaging and CI: `fetch-vendor.sh` (ffmpeg), `package-windows.sh`, Windows smoke and update tests, releases on `v*` tags. |
 | `engine/analyzer.js`, `director.js`, `motion.js`, `framing.js`, `transcript.js`, `transcriber.js`, `keys.js` | **Copied from PodDirector.** Don't edit them here; change them in PodDirector, then run `npm run sync-poddirector`. `engine/PODDIRECTOR.txt` records which version they came from. |
 | `cli/podgrip.js` | The command line. |
 | `tools/` | Research and checking tools. |

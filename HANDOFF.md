@@ -108,4 +108,4 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
 ## Reminders
 - The M: drive is read-only, except that the panel writes the assembly XML next to the episode project, in `project_files\premiere`. Never write to the footage, the audio or the template.
 - Engine files copied from PodDirector are changed in `../#poddirector`, then brought over with `npm run sync-poddirector`.
-- There's no GitHub remote. Don't create one unless David asks.
+- GitHub: `memoria-productions/podgrip` (public, David's choice 2026-10-30). Releases follow PodCutter's routine (CLAUDE.md, Releases).

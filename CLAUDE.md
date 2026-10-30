@@ -34,6 +34,23 @@ PodGrip is a Premiere Pro plugin (planned) that assembles a whole Classical et c
 - **The M: drive** is a network share. Read footage in place and never write to it. The one exception, agreed with David: the panel writes `classical_et_cetera_<ep>_assembly.xml` next to the episode project in `<episode>\project_files\premiere\`. Never write to the template project or to `media\`.
 - **The wide camera** is the 24-70 lens (Sony sidecar `<Lens modelName>`). Which body or angle is the wide changes from episode to episode.
 
+## Releases (like PodCutter's)
+- GitHub: `memoria-productions/podgrip`, public, so the in-panel updater (`lib/updater.js`) can read releases without a login.
+- **To release:**
+  1. Bump the version in `lib/version.js`, `CSXS/manifest.xml` (both numbers) and `package.json`. `tests/release.test.js` checks they match.
+  2. Push to `main`.
+  3. `git tag vX.Y.Z` and `git push origin vX.Y.Z`.
+- **What CI does** (`.github/workflows/build.yml`):
+  - tests every push;
+  - on a tag:
+    - downloads ffmpeg (`scripts/fetch-vendor.sh`);
+    - builds `PodGrip-X.Y.Z-Windows.zip` (`scripts/package-windows.sh`);
+    - installs it on Windows and reads LTC with the bundled ffmpeg (`scripts/smoke-test.js`);
+    - lets the updater install it (`scripts/update-test.js`);
+    - publishes the GitHub release.
+- Only tag the commit whose version matches the tag (CI checks). If a tag lands on the wrong commit, delete the GitHub release, then the tag (local and remote), then re-tag.
+- `gh` isn't installed on David's PC. Watch CI on GitHub (Actions tab) or through the GitHub API with curl.
+
 ## Conventions
 - Run `npm test` before committing. Tests use synthetic signals and headers, so no footage is needed.
 - Check changes against real episodes with the tools in `tools/`. `compare_edits.js` headline today: 79% agreement with David's camera choice (`PRESET=handoff MOTION=1 MOTION_ONLY=1 QUIET=1`).

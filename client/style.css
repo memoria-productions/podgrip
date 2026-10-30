@@ -34,6 +34,8 @@ p { margin: 0; }
 .status.ok { color: var(--ok); }
 .status.warn { color: var(--warn); }
 .status.err { color: var(--err); }
+.update { display: flex; align-items: center; gap: 8px; border-color: var(--accent2); }
+.update span { flex: 1; }
 .warnings { color: var(--warn); margin: 6px 0 0; padding-left: 16px; }
 summary { cursor: pointer; color: var(--muted); }
 .log { max-height: 260px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.4 Consolas, monospace; color: var(--muted); margin: 8px 0 0; }
