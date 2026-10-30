@@ -54,8 +54,8 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
   - `engine/assemble.js` builds it, writing through the shared helpers in `engine/xmeml.js`.
   - Output: `C:\Users\david.ward\Documents\PodGrip\assemble\classical_et_cetera_<ep>_assembly.xml`.
   - The file holds the `(Sync)` sequence, the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly), the `<ep>_mc` multiclip of the two with no audio, and the main sequence `classical_et_cetera_<ep>` with `_mc` on V1 and mics 1–4 on A1–A4.
-  - The ep 243 file is made. It's byte-identical to the first prototype, and the sync XML is unchanged.
-  - The older `..._assembly.xml` files in `PodGrip\sync\` are from before the split. Use the ones in `assemble\`.
+  - The ep 243 and ep 244 files are made. They're byte-identical to the first prototype, and the sync XML is unchanged.
+  - Everything from the old `Documents\PodAssembler` folder now lives in `Documents\PodGrip`: `sync\`, `assemble\` and the `compare\curves` cache.
 - **Next: David imports `assemble\classical_et_cetera_243_assembly.xml` into a scratch project.** Check:
   1. Does `243_mc` come in as a real multicam? It should right-click → Multi-Camera → Enable, and switch angles in the Program Monitor.
   2. Do `243_b_cam` and `243_a_cam` show in the bin as sequences, with the clips at the synced positions?
