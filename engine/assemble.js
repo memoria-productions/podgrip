@@ -1,7 +1,7 @@
 /*
- * PodAssembler — the multicam chain David builds on a synced episode (PROJECT.md section 2, "How the Premiere
+ * PodGrip — the multicam chain David builds on a synced episode (PROJECT.md section 2, "How the Premiere
  * project is built today"), written as one FCP7 XML so a single import brings it all in:
- *   classical_et_cetera_<ep> (Sync)          the synced sequence, as `podassembler sync` writes it
+ *   classical_et_cetera_<ep> (Sync)          the synced sequence, as `podgrip sync` writes it
  *   <ep>_b_cam, <ep>_a_cam (, <ep>_c_cam…)  one nest per camera, video only, clips at their synced positions:
  *                                            b = the wide, a = the dolly, as David names them in every past edit
  *   <ep>_mc                                  a multicam (multiclip) of the nests, no audio, the wide as angle 1

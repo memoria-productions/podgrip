@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Check PodAssembler's timecode sync against David's Resolve sync exports.
+ * Check PodGrip's timecode sync against David's Resolve sync exports.
  *
  * For every <episode>\project_files\resolve\*.xml (FCP7 XML), reads our own timecode for each clip (LTC on the
  * camera's audio, BWF on the F6 WAVs), compares it with the timecode Resolve stamped, then checks that laying the

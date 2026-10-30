@@ -1,4 +1,4 @@
-# PodAssembler: project brief
+# PodGrip: project brief
 
 A Premiere Pro plugin that builds a complete **Classical et cetera** episode from the shoot day's raw files. It handles the cold open, intro, name cards, the camera cut, the mid-roll cards and the outro. The result is a timeline David only has to review and polish.
 
@@ -89,7 +89,7 @@ It's distilled from PodDirector (`#poddirector`), which does the camera cutting 
 - **The F6 splits are seamless.** `_0002` starts on the exact sample where `_0001` ends, so a continuation WAV goes at the first one's position plus its length. No snapping is needed.
 - **Placing each clip at its timecode matches Resolve to the frame for the main take** in every episode.
   - What doesn't match, and why:
-    - **Second takes.** A second take's camera and `_002.WAV` are dragged together to just after the main take, so the whole group is shifted but still in sync with itself. PodAssembler should do the same: put each take after the last, with a short gap.
+    - **Second takes.** A second take's camera and `_002.WAV` are dragged together to just after the main take, so the whole group is shifted but still in sync with itself. PodGrip should do the same: put each take after the last, with a short gap.
     - **Snapped `_0002` files that are off.** In **ep 213 (+2.59 s) and ep 223 (+1.13 s)** the snapped `_0002` sits later than its true seamless join. That's 1–2.6 s of audio drift for the second half of the show, unless it was fixed in Premiere. Timecode placement avoids it.
     - **Small nudges on single clips:** ep 243 cam A7S3-3 +1.5 s, ep 232 two short clips, ep 231 one clip, ep 224 two clips. These can't be checked by audio, because the cameras have no room sound. They were either hand nudges or slips. Timecode is the reference.
 - **Folders renamed after export.** Some episode folders were renamed after the export (typo fixes, swapped numbers, ep 206 even points at `D:\1_2026_memoriapress\...`). Find files by name inside the episode folder, not by the stored path.
@@ -318,7 +318,7 @@ Existing data to start from (on David's PC):
 
 ## 9. Milestones
 
-0. **Timecode sync tool (do this first; it saves time on every episode).** **Built, 2026-10-30:** `podassembler sync <episode folder>` (`engine/sync.js`, `engine/xmeml.js`, `lib/episode.js`).
+0. **Timecode sync tool (do this first; it saves time on every episode).** **Built, 2026-10-30:** `podgrip sync <episode folder>` (`engine/sync.js`, `engine/xmeml.js`, `lib/episode.js`).
    - It writes an FCP7 XML in the shape of the Resolve export: the wide on V1, the dolly on V2, F6 channels on A1–A5, splits chained, takes in order.
    - `tools/sync_compare.js` puts it level with Resolve on 145 clips across 37 episodes.
    - Real-world cases it handles:
@@ -330,13 +330,13 @@ Existing data to start from (on David's PC):
    - **Checked in Premiere 2025, 2026-10-30:** David imported the ep 243 XML. The footage and audio are synced perfectly and nothing came in offline.
    - **Still to do:** run it on the next shoot alongside Resolve.
 1. **Prototype the Premiere side (1 week).** Generate an FCP7 XML for ep 243 with the stacked camera cut, mics, graphics, music and markers, and import it. Decide XML vs ExtendScript vs UXP, and whether the multicam step is needed.
-   - **David's choice, 2026-10-30:** a real, re-switchable **nested multicam** (question 1 in section 10). It's its own step of the plugin, separate from sync: `podassembler assemble <episode folder>` (`engine/assemble.js`).
-   - **First prototype, 2026-10-30:** `podassembler assemble` writes `<WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml`.
+   - **David's choice, 2026-10-30:** a real, re-switchable **nested multicam** (question 1 in section 10). It's its own step of the plugin, separate from sync: `podgrip assemble <episode folder>` (`engine/assemble.js`).
+   - **First prototype, 2026-10-30:** `podgrip assemble` writes `<WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml`.
      - It holds the `(Sync)` sequence, the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly), and the `<ep>_mc` multiclip with the wide as angle 1.
      - The main sequence `classical_et_cetera_<ep>` has `_mc` on V1 and mics 1–4 on A1–A4.
      - The nests are named the way David names them: in every past edit, `b_cam` is the wide.
      - **Waiting on David's import** to see whether Premiere keeps `_mc` as a switchable multicam.
-2. **Offline planner.** Steps 1–8 of section 5 as a Node CLI (`podassembler plan <episode folder>`), producing `<ep>.assembly.json`, plus a replay harness over the 38 episodes.
+2. **Offline planner.** Steps 1–8 of section 5 as a Node CLI (`podgrip plan <episode folder>`), producing `<ep>.assembly.json`, plus a replay harness over the 38 episodes.
 3. **Graphics and outro placement.** Deterministic rules from section 3, checked against all 38 episodes.
 4. **Teaser picker.** Ranking, scored by how often David's actual teaser lands in the top 3.
 5. **Panel.** A one-page flow (pick the episode folder → check people and cameras → Assemble → review list), using PodDirector's UI patterns and updater.
@@ -352,6 +352,6 @@ Existing data to start from (on David's PC):
 4. Do the channel cards land at particular moments (a pause, the end of a topic) or just around those times?
 5. What are the audio levels and fades for the music beds, the outros and the sting? (The project files have them; they haven't been measured yet.)
 6. When a guest has no lower-third render yet, who makes it, and from what template?
-7. What's the plugin's name? (PodAssembler is a placeholder.)
+7. ~~What's the plugin's name?~~ **PodGrip** (David, 2026-10-30). It was PodAssembler, which was too long and read badly when cut off. A grip builds the set before the director calls action, and PodDirector cuts what PodGrip builds.
 8. Were the small single-clip nudges done by hand (ep 243 cam A7S3-3 +1.5 s, and clips in eps 224, 231 and 232)? Did eps 213 and 223 have audio drift in the second half that you fixed in Premiere?
 9. Which cameras in eps 222, 224, 235 and 236 weren't on the timecode splitter?

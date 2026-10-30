@@ -1,5 +1,5 @@
 /*
- * PodAssembler — Broadcast WAV (Zoom F6) header reader.
+ * PodGrip — Broadcast WAV (Zoom F6) header reader.
  *
  * The F6 writes its timecode as the BWF bext time_reference: samples since midnight. At 23.976 fps a timecode
  * "day" is 86,486.4 real seconds, so frames = samples / rate * 24000/1001 (this matched Resolve on all 112 WAVs of

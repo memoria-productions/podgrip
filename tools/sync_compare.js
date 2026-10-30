@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Run `podassembler sync`'s planner on every episode that has a Resolve sync export, and compare: each clip's
+ * Run `podgrip sync`'s planner on every episode that has a Resolve sync export, and compare: each clip's
  * position relative to its take's first WAV, ours vs Resolve's. (Takes themselves are laid out differently on
  * purpose: we always leave a short gap; David drags them by hand.)
  *

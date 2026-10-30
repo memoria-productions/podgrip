@@ -18,5 +18,5 @@ module.exports = {
   SEATING: env("SEATING", path.join(home, "Music", "poddirector_audio_analyze", "seating.json")),
   // A PodDirector analysis export, used for its base cutting config
   BASE_CONFIG: env("BASE_CONFIG", path.join(home, "Documents", "PodDirector", "classical_et_cetera_244 Copy 02.poddirector.json")),
-  WORK_DIR: env("WORK_DIR", path.join(home, "Documents", "PodAssembler"))                   // caches and reports
+  WORK_DIR: env("WORK_DIR", path.join(home, "Documents", "PodGrip"))                   // caches and reports
 };

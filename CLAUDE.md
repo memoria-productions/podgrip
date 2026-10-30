@@ -1,12 +1,12 @@
-# PodAssembler: notes for Claude Code
+# PodGrip: notes for Claude Code
 
-PodAssembler is a Premiere Pro plugin (planned) that assembles a whole Classical et cetera episode from raw shoot files. The user is David Ward (Memoria Press), who edits the show himself. **Read PROJECT.md first**: it holds the design, the measured anatomy of 38 finished episodes, David's cutting rules, the recording setup, the milestones and the open questions.
+PodGrip is a Premiere Pro plugin (planned) that assembles a whole Classical et cetera episode from raw shoot files. The user is David Ward (Memoria Press), who edits the show himself. **Read PROJECT.md first**: it holds the design, the measured anatomy of 38 finished episodes, David's cutting rules, the recording setup, the milestones and the open questions.
 
 ## Layout
-- PodAssembler's own code:
+- PodGrip's own code:
   - `engine/ltc.js`, `bwf.js`, `sync.js`, `xmeml.js`, `xml.js` and `assemble.js` (pure, UMD);
   - `lib/` (Node-only helpers, such as `episode.js`);
-  - `cli/podassembler.js` (`timecode`, `sync`, `assemble`).
+  - `cli/podgrip.js` (`timecode`, `sync`, `assemble`).
 - The plugin's steps stay distinct, each with its own module and command:
   - `sync`: the timecode layout, written by `xmeml.js`;
   - `assemble`: the nested multicam chain built on it, `assemble.js`.

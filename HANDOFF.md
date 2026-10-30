@@ -1,19 +1,19 @@
-# PodAssembler: hand-over, 2026-10-30
+# PodGrip: hand-over, 2026-10-30
 
 This is where things stand after the session that checked the sync XMLs, before they were imported into Premiere. Read `PROJECT.md` and `CLAUDE.md` first.
 
 ## Done so far (on `main`)
 - `3dfd834`: the project brief, the timecode (LTC) reader, and the engine copied from PodDirector.
-- `db6c7c9`: `podassembler sync <episode folder>`. It lays out the cameras and the F6 WAVs by timecode and writes an FCP7 XML in place of the Resolve round trip. It matches the Resolve exports on 145 clips across 37 episodes.
+- `db6c7c9`: `podgrip sync <episode folder>`. It lays out the cameras and the F6 WAVs by timecode and writes an FCP7 XML in place of the Resolve round trip. It matches the Resolve exports on 145 clips across 37 episodes.
 
 ## New in this session
-- **The sync XMLs are already made** for ep 243 and ep 244, in `C:\Users\david.ward\Documents\PodAssembler\sync\`:
+- **The sync XMLs are already made** for ep 243 and ep 244, in `C:\Users\david.ward\Documents\PodGrip\sync\`:
   - `classical_et_cetera_243_sync.xml`
   - `classical_et_cetera_244_sync.xml`
 
   To make them again:
   ```
-  node cli/podassembler.js sync "M:\@PRODUCTION\memoria_press\video\#serial\classical_et_cetera\2026\20261012_243_mailbag"
+  node cli/podgrip.js sync "M:\@PRODUCTION\memoria_press\video\#serial\classical_et_cetera\2026\20261012_243_mailbag"
   ```
 - **Checked offline:**
   - Both files parse as valid XML.
@@ -47,15 +47,15 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
 
 ## Milestone 1: the nested multicam (branch `feature/assemble-multicam`)
 - **David chose a real, re-switchable nested multicam**, not a stacked V1/V2 cut.
-- **It's a distinct part of the plugin.** `podassembler sync` writes only the sync XML again. The multicam is its own command and module:
+- **It's a distinct part of the plugin.** `podgrip sync` writes only the sync XML again. The multicam is its own command and module:
   ```
-  node cli/podassembler.js assemble "M:\@PRODUCTION\memoria_press\video\#serial\classical_et_cetera\2026\20261012_243_mailbag"
+  node cli/podgrip.js assemble "M:\@PRODUCTION\memoria_press\video\#serial\classical_et_cetera\2026\20261012_243_mailbag"
   ```
   - `engine/assemble.js` builds it, writing through the shared helpers in `engine/xmeml.js`.
-  - Output: `C:\Users\david.ward\Documents\PodAssembler\assemble\classical_et_cetera_<ep>_assembly.xml`.
+  - Output: `C:\Users\david.ward\Documents\PodGrip\assemble\classical_et_cetera_<ep>_assembly.xml`.
   - The file holds the `(Sync)` sequence, the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly), the `<ep>_mc` multiclip of the two with no audio, and the main sequence `classical_et_cetera_<ep>` with `_mc` on V1 and mics 1–4 on A1–A4.
   - The ep 243 file is made. It's byte-identical to the first prototype, and the sync XML is unchanged.
-  - The older `..._assembly.xml` files in `PodAssembler\sync\` are from before the split. Use the ones in `assemble\`.
+  - The older `..._assembly.xml` files in `PodGrip\sync\` are from before the split. Use the ones in `assemble\`.
 - **Next: David imports `assemble\classical_et_cetera_243_assembly.xml` into a scratch project.** Check:
   1. Does `243_mc` come in as a real multicam? It should right-click → Multi-Camera → Enable, and switch angles in the Program Monitor.
   2. Do `243_b_cam` and `243_a_cam` show in the bin as sequences, with the clips at the synced positions?

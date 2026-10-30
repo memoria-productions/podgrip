@@ -1,5 +1,5 @@
 /*
- * PodAssembler — FCP7 XML (xmeml v5) writer for a synced episode, which Premiere imports as sequences.
+ * PodGrip — FCP7 XML (xmeml v5) writer for a synced episode, which Premiere imports as sequences.
  *
  * write(plan):    the synced sequence, in the shape of David's Resolve export:
  *   V1, V2…  one camera body per track (video only; the cameras' audio is just the timecode signal)

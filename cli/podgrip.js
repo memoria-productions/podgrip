@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /*
- * PodAssembler command line.
+ * PodGrip command line.
  *
- *   podassembler timecode <file|episode folder> ...   timecode of camera clips (LTC on their audio) and F6 WAVs (BWF)
- *   podassembler sync <episode folder> [--out file.xml] [--gap seconds]
+ *   podgrip timecode <file|episode folder> ...   timecode of camera clips (LTC on their audio) and F6 WAVs (BWF)
+ *   podgrip sync <episode folder> [--out file.xml] [--gap seconds]
  *       lays the cameras and F6 audio out by timecode and writes an FCP7 XML sequence for Premiere, in place of the
  *       Resolve round trip. Default output: <WORK_DIR>\sync\classical_et_cetera_<ep>_sync.xml
- *   podassembler assemble <episode folder> [--out file.xml] [--gap seconds]
+ *   podgrip assemble <episode folder> [--out file.xml] [--gap seconds]
  *       the synced sequence plus the multicam chain built on it: the camera nests (<ep>_b_cam = wide,
  *       <ep>_a_cam = dolly), the <ep>_mc multicam and the main sequence classical_et_cetera_<ep>.
  *       Default output: <WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml
@@ -32,7 +32,7 @@ function mediaIn(target) {
 }
 
 function timecode(targets) {
-  if (!targets.length) { console.error("usage: podassembler timecode <file|episode folder> ..."); process.exit(1); }
+  if (!targets.length) { console.error("usage: podgrip timecode <file|episode folder> ..."); process.exit(1); }
   targets.flatMap(mediaIn).forEach((f) => {
     const name = path.basename(f);
     if (/\.wav$/i.test(f)) {
@@ -74,19 +74,19 @@ function writeOut(file, text) {
 }
 
 function sync(args) {
-  const { plan, id, name, markers } = synced(args, "podassembler sync <episode folder> [--out file.xml] [--gap seconds]");
+  const { plan, id, name, markers } = synced(args, "podgrip sync <episode folder> [--out file.xml] [--gap seconds]");
   writeOut(opt(args, "--out", path.join(PATHS.WORK_DIR, "sync", "classical_et_cetera_" + id + "_sync.xml")), XM.write(plan, { name, markers }));
 }
 
 function assemble(args) {
-  const { plan, id, markers } = synced(args, "podassembler assemble <episode folder> [--out file.xml] [--gap seconds]");
+  const { plan, id, markers } = synced(args, "podgrip assemble <episode folder> [--out file.xml] [--gap seconds]");
   const n = A.names(plan, id);
   console.log("  Multicam " + n.mc + " of " + n.nests.join(" + ") + " on V1 of " + n.main + ", mics 1-" + Math.min(4, plan.channels) + " on A1-A" + Math.min(4, plan.channels));
   writeOut(opt(args, "--out", path.join(PATHS.WORK_DIR, "assemble", "classical_et_cetera_" + id + "_assembly.xml")), A.xml(plan, { ep: id, markers }));
 }
 
-const USAGE = "usage:\n  podassembler timecode <file|episode folder> ...\n  podassembler sync <episode folder> [--out file.xml] [--gap seconds]\n" +
-  "  podassembler assemble <episode folder> [--out file.xml] [--gap seconds]";
+const USAGE = "usage:\n  podgrip timecode <file|episode folder> ...\n  podgrip sync <episode folder> [--out file.xml] [--gap seconds]\n" +
+  "  podgrip assemble <episode folder> [--out file.xml] [--gap seconds]";
 if (cmd === "timecode") timecode(rest);
 else if (cmd === "sync") sync(rest);
 else if (cmd === "assemble") assemble(rest);

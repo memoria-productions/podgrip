@@ -1,5 +1,5 @@
 /*
- * PodAssembler — tiny XML reader (elements, attributes, text; no DTD, namespaces or CDATA beyond the basics).
+ * PodGrip — tiny XML reader (elements, attributes, text; no DTD, namespaces or CDATA beyond the basics).
  * Enough for FCP7 XML (xmeml) and Sony sidecars. parse(text) -> { name, attrs, children, text }.
  */
 (function (root, factory) {

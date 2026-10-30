@@ -1,5 +1,5 @@
 /*
- * PodAssembler — LTC (SMPTE linear timecode) decoder.
+ * PodGrip — LTC (SMPTE linear timecode) decoder.
  *
  * The Zoom F6's timecode out is split and fed into each camera's mic input, so every Sony clip carries the
  * recorder's timecode as audio on channel 1 (channel 2 is noise; the cameras record no room sound). The cameras'

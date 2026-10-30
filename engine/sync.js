@@ -1,5 +1,5 @@
 /*
- * PodAssembler — timecode sync planner.
+ * PodGrip — timecode sync planner.
  *
  * Lays an episode's camera clips and F6 WAVs out on one timeline by timecode, the way David's Resolve routine
  * does, without Resolve:

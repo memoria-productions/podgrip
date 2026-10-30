@@ -1,10 +1,10 @@
 {
-  "name": "podassembler",
+  "name": "podgrip",
   "version": "0.1.0",
   "description": "Assembles a complete Classical et cetera episode in Premiere Pro from the shoot files: timecode sync, multicam, camera cut, graphics and outro.",
   "license": "MIT",
   "private": true,
-  "bin": { "podassembler": "cli/podassembler.js" },
+  "bin": { "podgrip": "cli/podgrip.js" },
   "scripts": {
     "test": "node --test tests/*.test.js",
     "sync-poddirector": "node scripts/sync-poddirector.js"
