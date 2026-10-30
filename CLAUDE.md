@@ -5,8 +5,9 @@ PodGrip is a Premiere Pro plugin (planned) that assembles a whole Classical et c
 ## Layout
 - PodGrip's own code:
   - `engine/ltc.js`, `bwf.js`, `sync.js`, `xmeml.js`, `xml.js` and `assemble.js` (pure, UMD);
-  - `lib/` (Node-only helpers, such as `episode.js`);
-  - `cli/podgrip.js` (`timecode`, `sync`, `assemble`).
+  - `lib/` (Node-only helpers: `episode.js`, and `assembly.js`, which runs "Begin episode assembly" for both the panel and the CLI);
+  - `cli/podgrip.js` (`timecode`, `sync`, `assemble`);
+  - the Premiere panel: `CSXS/manifest.xml`, `client/` (page and `panel.js`, with Node enabled), `host/host.jsx` (ExtendScript, ES3, tested against a fake Premiere in `tests/host.test.js`), `install/install.ps1`.
 - The plugin's steps stay distinct, each with its own module and command:
   - `sync`: the timecode layout, written by `xmeml.js`;
   - `assemble`: the nested multicam chain built on it, `assemble.js`.
@@ -30,7 +31,7 @@ PodGrip is a Premiere Pro plugin (planned) that assembles a whole Classical et c
 - **Episode folders:**
   - They get renamed after projects and XMLs were made. Find files by name within the episode folder, not by stored path.
   - Typos are real: `peoject_files`, `classical_et_ceterea_<ep>_25.2.prproj`.
-- **The M: drive** is a network share. Read footage in place and never write to it.
+- **The M: drive** is a network share. Read footage in place and never write to it. The one exception, agreed with David: the panel writes `classical_et_cetera_<ep>_assembly.xml` next to the episode project in `<episode>\project_files\premiere\`. Never write to the template project or to `media\`.
 - **The wide camera** is the 24-70 lens (Sony sidecar `<Lens modelName>`). Which body or angle is the wide changes from episode to episode.
 
 ## Conventions

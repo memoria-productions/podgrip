@@ -7,7 +7,8 @@
  *                                            the episode's timeline (0 = the start of the audio): b = the wide,
  *                                            a = the dolly, as David names them in every past edit
  *   classical_et_cetera_<ep>                 the main sequence: mic channels 1–4 on A1–A4, V1 left for <ep>_mc,
- *                                            with a marker at 0 saying how to make it
+ *                                            with a marker at 0 saying how to make it ("… (Program)" when the XML
+ *                                            goes into David's template, which has its own main sequence)
  * The multicam itself (<ep>_mc) is made in Premiere: select the nests, Create Multi-Camera Source Sequence with
  * Synchronize Point "In Points" (no In marks set, so the nests line up by their starts), and put it on V1 at 0. The nests all start at the audio's 0, so it lands in sync.
  * It can't come in the XML. Premiere 2025 fails the whole import when a multiclip's angles are nested sequences,
@@ -31,10 +32,14 @@
     return plan.video.map(function (t, i) { return ep + "_" + (i === 0 && t.wide ? "b" : others[k++]) + "_cam"; });
   }
 
-  /** Names of everything the XML holds, and the multicam David makes from the nests: { sync, promos, nests, mc, main }. */
-  function names(plan, ep) {
+  /**
+   * Names of everything the XML holds, and the multicam David makes from the nests: { sync, promos, nests, mc, main }.
+   * inTemplate: the XML goes into David's template project, whose own main sequence is classical_et_cetera_<ep>
+   * (once the panel renames it from ###), so the XML's ready-made sequence is "… (Program)" instead.
+   */
+  function names(plan, ep, inTemplate) {
     return { sync: "classical_et_cetera_" + ep + " (Sync)", promos: "classical_et_cetera_" + ep + " promos (Sync)",
-      nests: nestNames(plan, ep), mc: ep + "_mc", main: "classical_et_cetera_" + ep };
+      nests: nestNames(plan, ep), mc: ep + "_mc", main: "classical_et_cetera_" + ep + (inTemplate ? " (Program)" : "") };
   }
 
   /** The one step left to do in Premiere, in David's words. */
@@ -47,11 +52,12 @@
    * xml(plan, opts) -> XML string with the synced sequence(s), the camera nests and the main sequence.
    *   plan: the episode (sync.split().episode);  opts.ep: episode id ("243");  opts.markers: for the synced
    *   sequence;  opts.promos: the promo plan, or null;  opts.mics: mic channels on the main sequence (4: channel 5
-   *   is left empty on purpose);  opts.width/height (1920x1080).
+   *   is left empty on purpose);  opts.inTemplate: name the ready-made sequence "… (Program)" (see names);
+   *   opts.width/height (1920x1080).
    */
   function xml(plan, opts) {
     opts = opts || {};
-    var ep = opts.ep || "ep", n = names(plan, ep), doc = XM.Doc(opts), dur = plan.durationFrames;
+    var ep = opts.ep || "ep", n = names(plan, ep, opts.inTemplate), doc = XM.Doc(opts), dur = plan.durationFrames;
     var mics = Math.min(opts.mics || 4, plan.channels);
     XM.open(doc);
     XM.syncSequence(doc, plan, { name: n.sync, markers: opts.markers }, "sequence-sync");

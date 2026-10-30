@@ -16,6 +16,22 @@ The design, everything measured from the 38 finished 2026 episodes, the mileston
 
 Early. What works today:
 
+- **The PodGrip panel in Premiere** (Window › Extensions › PodGrip).
+  - To set up an episode:
+    - Copy the media into `media\captured\footage` and `sync_sound`.
+    - Copy your template into `<episode>\project_files\premiere\`, rename it (for example `classical_et_cetera_245.prproj`) and open it.
+  - Then press **Begin episode assembly**. The panel:
+    1. renames the template's `###` sequences to the episode number;
+    2. reads the timecode and syncs;
+    3. writes `classical_et_cetera_<ep>_assembly.xml` next to the project;
+    4. imports it, with no dialog, into a **PodGrip** bin: `(Sync)`, `promos (Sync)`, the nests `<ep>_b_cam` / `<ep>_a_cam`, and `classical_et_cetera_<ep> (Program)` with the mics on A1–A4.
+  - It then tells you the one step left: make `<ep>_mc` from the nests (Create Multi-Camera Source Sequence, In Points) and put it on V1.
+  - Install or update it from this folder with:
+    ```
+    powershell -ExecutionPolicy Bypass -File install\install.ps1
+    ```
+    Then restart Premiere. It uses PodCutter's bundled ffmpeg.
+
 - **`podgrip timecode <file|episode folder>`** prints the timecode of every camera clip and F6 WAV. Cameras are read from the LTC the F6 feeds into their audio; WAVs from their BWF header. It matches Resolve's timecode on 120 of 125 camera clips and all 112 WAVs from 2026.
 - **`podgrip sync <episode folder> [--out file.xml] [--gap seconds]`** does what the Resolve round trip does today:
   - It lays the cameras and the F6 audio out by timecode and writes an FCP7 XML sequence, `classical_et_cetera_<ep> (Sync)`, to import into Premiere.
@@ -27,10 +43,11 @@ Early. What works today:
   - Anything it couldn't sync (no timecode on the clip) goes at the end with a "Not synced" marker.
   - It prints what went where and anything odd.
   - Over the 37 episodes with a Resolve export, it puts 145 clips exactly where Resolve did. The 7 that differ are the hand nudges and snapping slips described in PROJECT.md.
-  - **Not yet tried in Premiere:** import one (for example ep 243's) and check it before relying on it.
+  - Checked in Premiere 2025 on ep 243: in sync, and each mic on its own track.
+- **`podgrip assemble <episode folder>`**: the same assembly XML as the panel's, for the command line (in `Documents\PodGrip\assemble\`).
 - **Research tools** that check the engine against David's finished edits (see below).
 
-Next (PROJECT.md, milestone 1): building the nests, the multicam and the main sequence in Premiere.
+Next: the panel making `<ep>_mc` too, then placing the program, graphics and outro in the template's main sequence (PROJECT.md milestones 3–5).
 
 ## Layout
 
@@ -41,7 +58,11 @@ Next (PROJECT.md, milestone 1): building the nests, the multicam and the main se
 | `engine/sync.js` | Timecode sync planner: takes, splits, camera tracks, the wide first. |
 | `engine/xmeml.js` | FCP7 XML writer for the synced sequence. |
 | `engine/xml.js` | A small XML reader (FCP7 XML, Sony sidecars). |
+| `engine/assemble.js` | The assembly XML: synced sequences, camera nests, the program sequence. |
 | `lib/episode.js` | Reads an episode folder: clips, sidecars, timecode (Node). |
+| `lib/assembly.js` | "Begin episode assembly": finds the episode, syncs, writes the XML. Shared by the panel and the CLI. |
+| `CSXS/`, `client/`, `host/host.jsx` | The Premiere panel: manifest, page and controller, and the ExtendScript that renames and imports. |
+| `install/install.ps1` | Installs the panel into `%APPDATA%\Adobe\CEP\extensions\PodGrip`. |
 | `engine/analyzer.js`, `director.js`, `motion.js`, `framing.js`, `transcript.js`, `transcriber.js`, `keys.js` | **Copied from PodDirector.** Don't edit them here; change them in PodDirector, then run `npm run sync-poddirector`. `engine/PODDIRECTOR.txt` records which version they came from. |
 | `cli/podgrip.js` | The command line. |
 | `tools/` | Research and checking tools. |
@@ -63,5 +84,5 @@ Paths default to David's machine (`tools/paths.js`). Override any of them with a
 ## Requirements
 
 - Node 18 or later.
-- ffmpeg: PodDirector's bundled copy is used by default.
+- ffmpeg: PodCutter's bundled copy (PodDirector's, before the rename) is used by default.
 - exiftool, only for identifying cameras by aperture.

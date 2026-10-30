@@ -73,12 +73,39 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
 - **Promos:** the short takes besides the episode are Instagram promo recordings. They're synced, but kept out of the episode and the multicam (`sync.split`; see PROJECT.md milestone 1).
 - **Audio channels: fixed.** A2–A5 used to play Martin (channel 1). Each WAV `<file>` now lists its channels one by one, and David heard every mic on its own track (variant B in `import_tests\`). Premiere's own track attributes break this again, so they're left out (PROJECT.md milestone 1).
 - **Checked in Premiere 2025 by David, 2026-10-30:** the ep 243 assembly XML imports cleanly, and every mic is on its own track. The `243_mc` he made from the nests (In Points) has **both angles in lip sync**. Milestone 1's multicam step works.
-- **Next:** merge `feature/assemble-multicam` into `main` once David agrees, then:
-  - try `podgrip assemble` on the next shoot alongside Resolve;
-  - import the XML into a copy of David's template project (PROJECT.md section 2) rather than a blank one;
-  - for the episodes where a camera has a second clip within the episode (216, 222, 224, 231, 232, 234, 238), check that the nests hold both clips in sync.
+
+## The PodGrip panel (v0.1.0, built 2026-10-30, not yet run in Premiere)
+- **David's flow:**
+  1. Make the episode folder `yyyymmdd_###_title` and copy the media into `media\captured\footage` and `sync_sound`.
+  2. Copy the template into `project_files\premiere\`, rename it, and open it.
+  3. In the PodGrip panel, press **Begin episode assembly**.
+- **What the button does:**
+  - **Renames** the template's `###` sequences to the episode number (`PG.renameTemplateSequences`).
+  - **Syncs** in Node (`lib/assembly.js`, the same code as `podgrip assemble`).
+  - **Writes** `classical_et_cetera_<ep>_assembly.xml` next to the project.
+  - **Imports** it with no dialog into a top-level PodGrip bin (`PG.importXml` → `app.project.importFiles`). If a PodGrip bin already has items, it asks first.
+  - **Names:** the XML's ready-made sequence is `classical_et_cetera_<ep> (Program)` (mics on A1–A4, marker at 0), so it doesn't clash with the template's renamed main sequence.
+  - **Then** it shows the one manual step: make `<ep>_mc` from the nests (In Points) and put it on V1 of the Program sequence.
+- **Checked offline only:**
+  - the host script against a fake Premiere (`tests/host.test.js`);
+  - the panel's sync-and-write path on ep 243 (into a temp folder).
+- **Install:** `powershell -ExecutionPolicy Bypass -File install\install.ps1`, then restart Premiere.
+  - David runs this himself: auto mode won't let Claude run a script that bypasses the execution policy or may set PlayerDebugMode.
+  - PlayerDebugMode is already 1 for CSXS 9–12 (from PodCutter).
+- **Unknowns to watch on the first run:**
+  - whether `sequence.name` / `projectItem.name` renaming sticks in Premiere 2025;
+  - whether `importFiles` puts the XML's sequences straight in the bin or in a sub-bin (both are handled);
+  - how long the panel pauses while reading timecode (about 5 s per camera clip, synchronous).
+
+## Next
+- David installs the panel and runs it on a fresh episode (or a copy of ep 243's folder layout).
+- Then:
+  - merge `feature/assemble-multicam` into `main`;
+  - have the panel make `<ep>_mc` too, through keystrokes as PodCutter does, since there's no script API for it;
+  - place the program, graphics and outro in the template's main sequence (milestone 3).
+- Check the episodes where a camera has a second clip within the episode (216, 222, 224, 231, 232, 234, 238): do the nests hold both clips in sync?
 
 ## Reminders
-- The M: drive is read-only. Never write to it.
+- The M: drive is read-only, except that the panel writes the assembly XML next to the episode project, in `project_files\premiere`. Never write to the footage, the audio or the template.
 - Engine files copied from PodDirector are changed in `../#poddirector`, then brought over with `npm run sync-poddirector`.
 - There's no GitHub remote. Don't create one unless David asks.

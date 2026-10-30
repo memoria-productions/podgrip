@@ -8,8 +8,8 @@ module.exports = {
   // Episode folders: <SEASON_DIR>\<yyyymmdd>_<ep>_<slug>\
   SEASON_DIR: env("SEASON_DIR", "M:\\@PRODUCTION\\memoria_press\\video\\#serial\\classical_et_cetera\\2026"),
   GLOBAL_MEDIA: env("GLOBAL_MEDIA", "M:\\@PRODUCTION\\memoria_press\\video\\#serial\\classical_et_cetera\\#global\\media"),
-  // ffmpeg: PodDirector's bundled copy (ffmpeg isn't on PATH on David's PC)
-  FFMPEG: env("FFMPEG", path.join(process.env.APPDATA || "", "Adobe", "CEP", "extensions", "PodDirector", "vendor", "ffmpeg", "win32-x64", "ffmpeg.exe")),
+  // ffmpeg: PodCutter's bundled copy (PodDirector's before the rename); ffmpeg isn't on PATH on David's PC
+  FFMPEG: env("FFMPEG", require("../lib/assembly.js").findFfmpeg()),
   EXIFTOOL: env("EXIFTOOL", path.join(home, "AppData", "Local", "Programs", "ExifTool", "ExifTool.exe")),
   // Data gathered from past episodes (see PROJECT.md section 8)
   EDITS_DIR: env("EDITS_DIR", path.join(home, "Documents", "PodDirector", "edits")),       // tools/prproj.js output

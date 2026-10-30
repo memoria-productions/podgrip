@@ -17,8 +17,8 @@
 "use strict";
 const fs = require("fs"), path = require("path");
 const L = require("../engine/ltc.js"), B = require("../engine/bwf.js");
-const S = require("../engine/sync.js"), XM = require("../engine/xmeml.js"), A = require("../engine/assemble.js");
-const E = require("../lib/episode.js");
+const XM = require("../engine/xmeml.js"), A = require("../engine/assemble.js");
+const LA = require("../lib/assembly.js");
 const PATHS = require("../tools/paths.js");
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -55,11 +55,9 @@ function opt(args, k, d) { const i = args.indexOf(k); return i >= 0 ? args[i + 1
 function synced(args, usage) {
   const dir = args.find((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--")));
   if (!dir || !fs.existsSync(dir)) { console.error("usage: " + usage); process.exit(1); }
-  const ep = E.read(dir, PATHS.FFMPEG, (m) => process.stderr.write(m + "\n"));
-  const { episode: plan, promos } = S.split(ep.clips, { date: ep.f6Date, gapFrames: Math.round(Number(opt(args, "--gap", 2)) * 24), leadFrames: Math.round(Number(opt(args, "--lead", 10)) * 24) });
-  const id = ep.ep || ep.slug, name = "classical_et_cetera_" + id + " (Sync)";
-  const markers = plan.video.flatMap((t) => t.clips).filter((c) => c.unsynced)
-    .map((c) => ({ frame: c.start, name: "Not synced: " + c.name, comment: "No timecode on this clip's audio, or it overlaps none of the F6 audio. Line it up by hand." }));
+  const prep = LA.prepare(dir, PATHS.FFMPEG, { gapSec: Number(opt(args, "--gap", 2)), leadSec: Number(opt(args, "--lead", 10)),
+    log: (m) => process.stderr.write(m + "\n") });
+  const { plan, promos, id, markers } = prep, name = prep.names.sync;
 
   const min = (f) => (f / 24 * 1.001 / 60).toFixed(1) + " min";
   const show = (title, p) => {
@@ -71,7 +69,7 @@ function synced(args, usage) {
   show(name, plan);
   if (promos) show("Promos, kept apart from the episode", promos);
   plan.warnings.forEach((w) => console.log("  ! " + w));
-  return { plan, promos, id, name, markers };
+  return { prep, plan, promos, id, name, markers };
 }
 
 function writeOut(file, text) {
@@ -87,10 +85,12 @@ function sync(args) {
 }
 
 function assemble(args) {
-  const { plan, promos, id, markers } = synced(args, "podgrip assemble <episode folder> [--out file.xml] [--gap seconds] [--lead seconds]");
-  const n = A.names(plan, id);
+  const { prep, plan, id } = synced(args, "podgrip assemble <episode folder> [--out file.xml] [--gap seconds] [--lead seconds]");
+  const n = prep.names;
   console.log("\n  Nests " + n.nests.join(", ") + "; " + n.main + " with mics 1-" + Math.min(4, plan.channels) + " on A1-A" + Math.min(4, plan.channels));
-  writeOut(opt(args, "--out", path.join(PATHS.WORK_DIR, "assemble", "classical_et_cetera_" + id + "_assembly.xml")), A.xml(plan, { ep: id, markers, promos }));
+  const out = opt(args, "--out", null);
+  if (out) writeOut(out, A.xml(plan, { ep: id, markers: prep.markers, promos: prep.promos }));
+  else console.log("Wrote " + LA.write(prep, path.join(PATHS.WORK_DIR, "assemble")));
   console.log("\nIn Premiere, after importing it: " + A.mcStep(n));
 }
 
