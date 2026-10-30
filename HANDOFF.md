@@ -26,9 +26,9 @@ This is where things stand after the session that checked the sync XMLs, before 
   - **File details:** we declare sample characteristics (32-bit, 48 kHz, 5 channels) on the WAV `<file>`. Resolve gives only `channelcount`.
   - **Filters:** there are no Audio Levels or Pan filters. Resolve adds them at unity.
 - **Premiere Pro 2025** is installed at `C:\Program Files\Adobe\Adobe Premiere Pro 2025`. Projects are saved as 25.2.
-- **Nothing has been imported into Premiere yet.** No code has changed since `db6c7c9`.
+- **Imported into Premiere 2025 by David:** the footage and audio are synced perfectly, and nothing came in offline. No changes to `xmeml.js` were needed.
 
-## Next: import ep 243 and check it
+## Import checklist (done for ep 243; reuse it for new episodes)
 1. In a **scratch project**, go to File › Import and choose `classical_et_cetera_243_sync.xml`. Open the sequence `classical_et_cetera_243 (Sync)`.
 2. **Video:**
    - V1 should be `20261012_A7S3_1_5524.MP4`, the wide.
