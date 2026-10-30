@@ -6,6 +6,8 @@
  *   podassembler sync <episode folder> [--out file.xml] [--gap seconds]
  *       lays the cameras and F6 audio out by timecode and writes an FCP7 XML sequence for Premiere, in place of the
  *       Resolve round trip. Default output: <WORK_DIR>\sync\classical_et_cetera_<ep>_sync.xml
+ *       Also writes classical_et_cetera_<ep>_assembly.xml next to it: the same sequence plus the camera nests
+ *       (<ep>_b_cam = wide, <ep>_a_cam = dolly), the <ep>_mc multicam and the main sequence classical_et_cetera_<ep>.
  */
 "use strict";
 const fs = require("fs"), path = require("path");
@@ -54,6 +56,8 @@ function sync(args) {
   const out = opt(args, "--out", path.join(PATHS.WORK_DIR, "sync", "classical_et_cetera_" + id + "_sync.xml"));
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, XM.write(plan, { name, markers }));
+  const asm = out.replace(/(_sync)?\.xml$/i, "_assembly.xml");
+  fs.writeFileSync(asm, XM.assembly(plan, { ep: id, name, markers }));
 
   const min = (f) => (f / 24 * 1.001 / 60).toFixed(1) + " min";
   console.log("\n" + name + ": " + min(plan.durationFrames));
@@ -62,6 +66,7 @@ function sync(args) {
   console.log("  A1-A" + plan.channels + "  " + plan.takes.map((t) => "take " + t.take + ": " + t.wavs.map((w) => w.name).join(" + ")).join("; "));
   plan.warnings.forEach((w) => console.log("  ! " + w));
   console.log("Wrote " + out);
+  console.log("Wrote " + asm + "  (" + XM.nestNames(plan, id).join(", ") + ", " + id + "_mc, classical_et_cetera_" + id + ")");
 }
 
 if (cmd === "timecode") timecode(rest);

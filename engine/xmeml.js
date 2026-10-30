@@ -1,10 +1,15 @@
 /*
- * PodAssembler — FCP7 XML (xmeml v5) writer for a synced episode, in the shape of David's Resolve export, which
- * Premiere imports as a sequence:
+ * PodAssembler — FCP7 XML (xmeml v5) writer for a synced episode, which Premiere imports as sequences.
+ *
+ * write(plan):    the synced sequence, in the shape of David's Resolve export:
  *   V1, V2…  one camera body per track (video only; the cameras' audio is just the timecode signal)
  *   A1, A2…  one F6 channel per track (A1–A4 = the four mics, as in the finished edit), every channel of a WAV
  *            linked so they move together
  *   markers  for anything placed without timecode
+ * assembly(plan): the synced sequence plus David's chain built on it (PROJECT.md section 2):
+ *   <ep>_b_cam, <ep>_a_cam (, <ep>_c_cam)   one nest per camera: b = the wide, a = the dolly, as David names them
+ *   <ep>_mc                                 a multicam (multiclip) of the nests, no audio, the wide as angle 1
+ *   classical_et_cetera_<ep>                the multicam on V1, mic channels 1–4 on A1–A4
  * 23.976 fps (timebase 24, NTSC), 1920x1080, 48 kHz.
  */
 (function (root, factory) {
@@ -33,11 +38,8 @@
     return p(Math.floor(s / 3600)) + ":" + p(Math.floor(s / 60) % 60) + ":" + p(s % 60) + ":" + p(frames % 24);
   }
 
-  /**
-   * write(plan, opts) -> XML string.  opts.name: sequence name;  opts.width/height (1920x1080).
-   */
-  function write(plan, opts) {
-    opts = opts || {};
+  /** Writer for one document. Files are defined in full once and referenced by id after that. */
+  function Doc(opts) {
     var W = opts.width || 1920, H = opts.height || 1080, out = [], defined = {};
     var line = function (depth, s) { out.push(new Array(depth + 1).join("    ") + s); };
     var fileId = function (c) { return c.name + " file"; };
@@ -63,6 +65,7 @@
       line(depth, "</file>");
     }
 
+    /** A clipitem of a whole file (c) placed at c.start; `extra` writes what goes after the <file>. */
     function clipItem(depth, id, c, extra) {
       line(depth, "<clipitem id=\"" + esc(id) + "\">");
       line(depth + 1, "<masterclipid>" + esc(c.name + " master") + "</masterclipid>");
@@ -79,52 +82,163 @@
       line(depth, "</clipitem>");
     }
 
-    var seqName = opts.name || "Synced episode";
-    var dur = plan.durationFrames;
-    line(0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-    line(0, "<!DOCTYPE xmeml>");
-    line(0, "<xmeml version=\"5\">");
-    line(1, "<sequence id=\"sequence-1\">");
-    line(2, "<name>" + esc(seqName) + "</name>");
-    line(2, "<duration>" + dur + "</duration>");
-    line(2, RATE);
-    line(2, "<timecode>" + RATE + "<string>01:00:00:00</string><frame>86400</frame><displayformat>NDF</displayformat></timecode>");
-    line(2, "<in>-1</in><out>-1</out>");
-    line(2, "<media>");
-    line(3, "<video>");
-    line(4, "<format><samplecharacteristics>" + RATE + "<width>" + W + "</width><height>" + H + "</height><pixelaspectratio>square</pixelaspectratio><fielddominance>none</fielddominance></samplecharacteristics></format>");
-    plan.video.forEach(function (t) {
-      line(4, "<track>");
-      t.clips.forEach(function (c) { clipItem(5, c.name + " v", c); });
-      line(5, "<enabled>TRUE</enabled><locked>FALSE</locked>");
-      line(4, "</track>");
-    });
-    line(3, "</video>");
-    line(3, "<audio>");
-    line(4, "<numOutputChannels>2</numOutputChannels>");
-    line(4, "<format><samplecharacteristics><depth>32</depth><samplerate>48000</samplerate></samplecharacteristics></format>");
-    for (var ch = 1; ch <= plan.channels; ch++) {
-      line(4, "<track>");
-      plan.wavs.forEach(function (w) {
-        if (ch > w.channels) return;
-        clipItem(5, w.name + " a" + ch, w, function (d) {
-          line(d, "<sourcetrack><mediatype>audio</mediatype><trackindex>" + ch + "</trackindex></sourcetrack>");
-          for (var k = 1; k <= w.channels; k++)
-            line(d, "<link><linkclipref>" + esc(w.name + " a" + k) + "</linkclipref><mediatype>audio</mediatype><trackindex>" + k + "</trackindex><clipindex>" + (plan.wavs.filter(function (x) { return x.channels >= k; }).indexOf(w) + 1) + "</clipindex></link>");
-        });
-      });
-      line(5, "<enabled>TRUE</enabled><locked>FALSE</locked>");
-      line(4, "</track>");
+    /** A clipitem that isn't a file (a nest or a multicam), spanning 0..dur; `body` writes what it holds. */
+    function wrapItem(depth, id, name, dur, body) {
+      line(depth, "<clipitem id=\"" + esc(id) + "\">");
+      line(depth + 1, "<name>" + esc(name) + "</name>");
+      line(depth + 1, "<enabled>TRUE</enabled>");
+      line(depth + 1, "<duration>" + dur + "</duration>");
+      line(depth + 1, RATE);
+      line(depth + 1, "<start>0</start>");
+      line(depth + 1, "<end>" + dur + "</end>");
+      line(depth + 1, "<in>0</in>");
+      line(depth + 1, "<out>" + dur + "</out>");
+      body(depth + 1);
+      line(depth, "</clipitem>");
     }
-    line(3, "</audio>");
-    line(2, "</media>");
-    (opts.markers || []).forEach(function (m) {
-      line(2, "<marker><name>" + esc(m.name) + "</name><comment>" + esc(m.comment || "") + "</comment><in>" + m.frame + "</in><out>-1</out></marker>");
-    });
-    line(1, "</sequence>");
-    line(0, "</xmeml>");
-    return out.join("\n") + "\n";
+
+    function tracks(depth, list) {
+      (list || []).forEach(function (items) {
+        line(depth, "<track>");
+        items(depth + 1);
+        line(depth + 1, "<enabled>TRUE</enabled><locked>FALSE</locked>");
+        line(depth, "</track>");
+      });
+    }
+
+    /** s: { id, name, dur, video: [fn(depth) writing one track's items], audio: [same] or null, markers } */
+    function sequence(depth, s) {
+      line(depth, "<sequence id=\"" + esc(s.id) + "\">");
+      line(depth + 1, "<name>" + esc(s.name) + "</name>");
+      line(depth + 1, "<duration>" + s.dur + "</duration>");
+      line(depth + 1, RATE);
+      line(depth + 1, "<timecode>" + RATE + "<string>01:00:00:00</string><frame>86400</frame><displayformat>NDF</displayformat></timecode>");
+      line(depth + 1, "<in>-1</in><out>-1</out>");
+      line(depth + 1, "<media>");
+      line(depth + 2, "<video>");
+      line(depth + 3, "<format><samplecharacteristics>" + RATE + "<width>" + W + "</width><height>" + H + "</height><pixelaspectratio>square</pixelaspectratio><fielddominance>none</fielddominance></samplecharacteristics></format>");
+      tracks(depth + 3, s.video);
+      line(depth + 2, "</video>");
+      line(depth + 2, "<audio>");
+      line(depth + 3, "<numOutputChannels>2</numOutputChannels>");
+      line(depth + 3, "<format><samplecharacteristics><depth>32</depth><samplerate>48000</samplerate></samplecharacteristics></format>");
+      tracks(depth + 3, s.audio);
+      line(depth + 2, "</audio>");
+      line(depth + 1, "</media>");
+      (s.markers || []).forEach(function (m) {
+        line(depth + 1, "<marker><name>" + esc(m.name) + "</name><comment>" + esc(m.comment || "") + "</comment><in>" + m.frame + "</in><out>-1</out></marker>");
+      });
+      line(depth, "</sequence>");
+    }
+
+    /** One audio track per F6 channel 1..n, each WAV's channels linked; ids get `tag` so sequences don't clash. */
+    function micTracks(plan, n, tag) {
+      var list = [];
+      for (var ch = 1; ch <= n; ch++) (function (ch) {
+        list.push(function (depth) {
+          plan.wavs.forEach(function (w) {
+            if (ch > w.channels) return;
+            clipItem(depth, tag + w.name + " a" + ch, w, function (d) {
+              line(d, "<sourcetrack><mediatype>audio</mediatype><trackindex>" + ch + "</trackindex></sourcetrack>");
+              for (var k = 1; k <= Math.min(w.channels, n); k++)
+                line(d, "<link><linkclipref>" + esc(tag + w.name + " a" + k) + "</linkclipref><mediatype>audio</mediatype><trackindex>" + k + "</trackindex><clipindex>" + (plan.wavs.filter(function (x) { return x.channels >= k; }).indexOf(w) + 1) + "</clipindex></link>");
+            });
+          });
+        });
+      })(ch);
+      return list;
+    }
+
+    return { line: line, clipItem: clipItem, wrapItem: wrapItem, sequence: sequence, micTracks: micTracks,
+      text: function () { return out.join("\n") + "\n"; } };
   }
 
-  return { write: write, pathUrl: pathUrl, tcString: tcString };
+  function open(doc) {
+    doc.line(0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    doc.line(0, "<!DOCTYPE xmeml>");
+    doc.line(0, "<xmeml version=\"5\">");
+  }
+
+  function syncSequence(doc, plan, opts, id) {
+    doc.sequence(1, {
+      id: id, name: opts.name || "Synced episode", dur: plan.durationFrames,
+      video: plan.video.map(function (t) {
+        return function (depth) { t.clips.forEach(function (c) { doc.clipItem(depth, c.name + " v", c); }); };
+      }),
+      audio: doc.micTracks(plan, plan.channels, ""),
+      markers: opts.markers
+    });
+  }
+
+  /**
+   * write(plan, opts) -> XML string of the synced sequence.  opts.name: sequence name;  opts.markers;
+   * opts.width/height (1920x1080).
+   */
+  function write(plan, opts) {
+    opts = opts || {};
+    var doc = Doc(opts);
+    open(doc);
+    syncSequence(doc, plan, opts, "sequence-1");
+    doc.line(0, "</xmeml>");
+    return doc.text();
+  }
+
+  /** David's names for the camera nests: the wide is b_cam, the dolly a_cam, any further camera c_cam, d_cam… */
+  function nestNames(plan, ep) {
+    var others = ["a", "c", "d", "e", "f"], k = 0;
+    return plan.video.map(function (t, i) { return ep + "_" + (i === 0 && t.wide ? "b" : others[k++]) + "_cam"; });
+  }
+
+  /**
+   * assembly(plan, opts) -> XML string with the synced sequence, the camera nests, the multicam and the main
+   * sequence.  opts.ep: episode id ("243");  opts.name / opts.markers: for the synced sequence;
+   * opts.mics: mic channels on the main sequence (4).
+   */
+  function assembly(plan, opts) {
+    opts = opts || {};
+    var doc = Doc(opts), ep = opts.ep || "ep", dur = plan.durationFrames, mics = Math.min(opts.mics || 4, plan.channels);
+    var names = nestNames(plan, ep), mc = ep + "_mc";
+    open(doc);
+    syncSequence(doc, plan, opts, "sequence-sync");
+
+    function angle(d, t, i) {
+      var nest = names[i];
+      doc.line(d, "<angle>");
+      doc.line(d + 1, "<name>" + esc(nest) + "</name>");
+      if (i === 0) doc.line(d + 1, "<activevideoangle>TRUE</activevideoangle>");
+      doc.line(d + 1, "<clip id=\"" + esc(nest + " clip") + "\">");
+      doc.line(d + 2, "<name>" + esc(nest) + "</name>");
+      doc.line(d + 2, "<duration>" + dur + "</duration>");
+      doc.line(d + 2, RATE);
+      doc.line(d + 2, "<media><video><track>");
+      doc.wrapItem(d + 3, nest + " item", nest, dur, function (dd) {
+        doc.sequence(dd, {
+          id: nest, name: nest, dur: dur, audio: null,
+          video: [function (depth) { t.clips.forEach(function (c) { doc.clipItem(depth, nest + " " + c.name, c); }); }]
+        });
+      });
+      doc.line(d + 2, "</track></video></media>");
+      doc.line(d + 1, "</clip>");
+      doc.line(d, "</angle>");
+    }
+
+    doc.sequence(1, {
+      id: "sequence-main", name: "classical_et_cetera_" + ep, dur: dur,
+      video: [function (depth) {
+        doc.wrapItem(depth, mc + " item", mc, dur, function (d) {
+          doc.line(d, "<multiclip id=\"" + esc(mc) + "\">");
+          doc.line(d + 1, "<name>" + esc(mc) + "</name>");
+          doc.line(d + 1, "<collapsed>FALSE</collapsed>");
+          doc.line(d + 1, "<synctype>0</synctype>");
+          plan.video.forEach(function (t, i) { angle(d + 1, t, i); });
+          doc.line(d, "</multiclip>");
+        });
+      }],
+      audio: doc.micTracks(plan, mics, "main ")
+    });
+    doc.line(0, "</xmeml>");
+    return doc.text();
+  }
+
+  return { write: write, assembly: assembly, nestNames: nestNames, pathUrl: pathUrl, tcString: tcString };
 });

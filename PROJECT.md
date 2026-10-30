@@ -330,6 +330,11 @@ Existing data to start from (on David's PC):
    - **Checked in Premiere 2025, 2026-10-30:** David imported the ep 243 XML. The footage and audio are synced perfectly and nothing came in offline.
    - **Still to do:** run it on the next shoot alongside Resolve.
 1. **Prototype the Premiere side (1 week).** Generate an FCP7 XML for ep 243 with the stacked camera cut, mics, graphics, music and markers, and import it. Decide XML vs ExtendScript vs UXP, and whether the multicam step is needed.
+   - **First prototype, 2026-10-30:** `podassembler sync` also writes `classical_et_cetera_<ep>_assembly.xml` (`xmeml.assembly`).
+     - It holds the `(Sync)` sequence, the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly), and the `<ep>_mc` multiclip with the wide as angle 1.
+     - The main sequence `classical_et_cetera_<ep>` has `_mc` on V1 and mics 1–4 on A1–A4.
+     - The nests are named the way David names them: in every past edit, `b_cam` is the wide.
+     - **Waiting on David's import** to see whether Premiere keeps `_mc` as a switchable multicam.
 2. **Offline planner.** Steps 1–8 of section 5 as a Node CLI (`podassembler plan <episode folder>`), producing `<ep>.assembly.json`, plus a replay harness over the 38 episodes.
 3. **Graphics and outro placement.** Deterministic rules from section 3, checked against all 38 episodes.
 4. **Teaser picker.** Ranking, scored by how often David's actual teaser lands in the top 3.

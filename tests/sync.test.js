@@ -85,6 +85,30 @@ test("xmeml: writes a sequence Premiere can read: tracks, files once, linked aud
   assert.equal(X.textOf(seq, "marker/name"), "Check");
 });
 
+test("xmeml: the assembly holds the synced sequence, the camera nests, the multicam and the main sequence", () => {
+  const p = S.plan(ep243(), { date: "261012" });
+  assert.deepEqual(XM.nestNames(p, "243"), ["243_b_cam", "243_a_cam"]);   // David's names: b = wide, a = dolly
+  const doc = X.parse(XM.assembly(p, { ep: "243", name: "classical_et_cetera_243 (Sync)" }));
+  const seqs = X.kids(X.child(doc, "xmeml"), "sequence");
+  assert.deepEqual(seqs.map((s) => X.textOf(s, "name")), ["classical_et_cetera_243 (Sync)", "classical_et_cetera_243"]);
+  const main = seqs[1], mc = X.child(main, "media/video/track/clipitem/multiclip");
+  assert.equal(X.textOf(mc, "name"), "243_mc");
+  const angles = X.kids(mc, "angle");
+  assert.deepEqual(angles.map((a) => X.textOf(a, "name")), ["243_b_cam", "243_a_cam"]);
+  assert.equal(X.textOf(angles[0], "activevideoangle"), "TRUE");
+  const nest = X.child(angles[1], "clip/media/video/track/clipitem/sequence");
+  assert.equal(X.textOf(nest, "name"), "243_a_cam");
+  assert.equal(X.kids(X.child(nest, "media/audio"), "track").length, 0, "the nests carry no audio");
+  assert.deepEqual(X.kids(X.child(nest, "media/video/track"), "clipitem").map((c) => X.textOf(c, "start")),
+    p.video[1].clips.map((c) => String(c.start)), "camera clips keep their synced positions");
+  const audio = X.kids(X.child(main, "media/audio"), "track");
+  assert.equal(audio.length, 4, "mics 1–4 on A1–A4; the empty channel 5 left off");
+  assert.equal(X.kids(X.kids(audio[0], "clipitem")[0], "link").length, 4);
+  const ids = X.all(doc, "clipitem").map((c) => c.attrs.id);
+  assert.equal(new Set(ids).size, ids.length, "clipitem ids are unique across the document");
+  assert.equal(X.all(doc, "file").filter((f) => f.children.length).length, 6, "each file defined once");
+});
+
 test("xmeml: path URLs are escaped the way Resolve writes them", () => {
   assert.equal(XM.pathUrl("M:\\@PRODUCTION\\video\\#serial\\a b\\x.MP4"), "file://localhost/M:/@PRODUCTION/video/%23serial/a%20b/x.MP4");
 });
