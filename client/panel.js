@@ -157,28 +157,88 @@
     }).then(function () { state.busy = false; $("btnPlace").disabled = !state.info; });
   }
 
-  /** A newer release on GitHub (memoria-productions/podgrip) shows a banner; quiet when offline or up to date. */
-  function checkUpdate() {
-    state.U.check({ current: VERSION }).then(function (r) {
-      if (!r.newer) { r.errors.forEach(function (e) { log("update check: " + e); }); return; }
-      state.update = r.latest;
-      $("updateText").textContent = "PodGrip " + r.latest.version + " is available (you have " + VERSION + ").";
-      $("updateBanner").classList.remove("hidden");
+  // ------------------------------------------------------------ updates (as in PodCutter)
+  function store(key, val) { try { localStorage.setItem("pg." + key, JSON.stringify(val)); } catch (e) { /* ignore */ } }
+  function load(key, def) { try { var v = localStorage.getItem("pg." + key); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+  function updateOpts() { return { current: VERSION, folder: $("updateFolder").value.trim(), github: $("updateGithub").checked }; }
+
+  /**
+   * Look for a newer PodGrip: GitHub releases of memoria-productions/podgrip and/or a shared update folder.
+   * On open it's quiet (a banner only if there's something new and it wasn't put off with Later).
+   */
+  function checkUpdates(quiet) {
+    $("updateStatus").textContent = "Checking…";
+    return state.U.check(updateOpts()).then(function (r) {
+      state.update = r.newer ? r.latest : null;
+      $("verLatest").textContent = r.latest ? r.latest.version + " (" + r.latest.source + ")" : "none found";
+      $("btnInstallUpdate").disabled = !state.update;
+      $("updateStatus").textContent = state.update ? "Version " + state.update.version + " is available." :
+        (r.latest ? "You're up to date." : "No release found.") + (r.errors.length ? " " + r.errors.join(" ") : "");
+      if (state.update && (!quiet || load("skipVersion", null) !== state.update.version)) {
+        $("updateText").textContent = "PodGrip " + state.update.version + " is available (you have " + VERSION + ").";
+        $("btnUpdateNow").classList.remove("hidden"); $("btnReloadBanner").classList.add("hidden");
+        $("updateBanner").classList.remove("hidden");
+      }
+      if (r.errors.length) log("update check: " + r.errors.join(" | "));
     });
   }
 
-  function update() {
+  function installUpdate() {
     if (state.busy || !state.update) return;
-    state.busy = true; $("btnUpdate").disabled = true;
+    state.busy = true; $("btnUpdateNow").disabled = $("btnInstallUpdate").disabled = true;
+    $("updateBanner").classList.remove("hidden");
+    var labels = { copy: "Copying the update", download: "Downloading the update", unpack: "Unpacking", install: "Installing", done: "Installed" };
     state.U.install(state.update, function (stage, f) {
-      $("updateText").textContent = { download: "Downloading… " + Math.round((f || 0) * 100) + "%", copy: "Copying…", unpack: "Unpacking…", install: "Installing…", done: "Installed." }[stage] || stage;
+      $("updateText").textContent = labels[stage] + (f && f < 1 ? " " + Math.round(f * 100) + "%" : "") + "…";
     }, { extensionRoot: state.extRoot }).then(function (r) {
-      $("updateText").textContent = "Updated to " + r.version + ". " + (r.needsRestart ? "Restart Premiere Pro to load it." : "Close and reopen the PodGrip panel to load it.");
-      log("updated to " + r.version);
+      log(r.log || ("installed " + r.version));
+      $("btnUpdateNow").classList.add("hidden");
+      if (r.needsRestart) {
+        // The manifest changed (more than its version): Premiere only reads it at startup.
+        $("updateText").textContent = "PodGrip " + r.version + " is installed. Save your project and restart Premiere Pro to use it.";
+        $("updateStatus").textContent = "Installed " + r.version + ": restart Premiere Pro to finish.";
+        $("btnUpdateLater").textContent = "OK";
+      } else {
+        $("updateText").textContent = "PodGrip " + r.version + " is installed.";
+        $("updateStatus").textContent = "Installed " + r.version + ". Click Reload PodGrip to start using it; no need to restart Premiere.";
+        $("btnReloadBanner").classList.remove("hidden");
+        $("btnUpdateLater").textContent = "Later";
+      }
+      state.update = null;
     }).catch(function (e) {
       $("updateText").textContent = "The update didn't install: " + e.message;
-      $("btnUpdate").disabled = false;
-    }).then(function () { state.busy = false; });
+      $("btnInstallUpdate").disabled = $("btnUpdateNow").disabled = false;
+      log("update failed: " + (e.stack || e.message));
+    }).then(function () { state.busy = false; $("btnUpdateNow").disabled = false; });
+  }
+
+  /**
+   * Load the installed files again without restarting Premiere: re-run the host script (it redefines PG), forget
+   * the Node modules loaded from the panel's folder, and reload the page. Settings are in localStorage, so they stay.
+   */
+  function reloadPanel() {
+    if (state.busy) { status("Wait for the current job to finish, then reload.", "err"); return; }
+    Object.keys(require.cache || {}).forEach(function (k) { if (k.indexOf(state.extRoot) === 0) delete require.cache[k]; });
+    if (!inPremiere) { location.reload(); return; }
+    var jsx = path.join(state.extRoot, "host", "host.jsx").replace(/\\/g, "/");
+    cs.evalScript("$.evalFile(new File(" + JSON.stringify(jsx) + "))", function () { location.reload(); });
+  }
+
+  function wireUpdates() {
+    $("verInstalled").textContent = VERSION;
+    $("updateFolder").value = load("updateFolder", "");
+    $("updateGithub").checked = load("updateGithub", true) !== false;
+    $("updateFolder").addEventListener("change", function () { store("updateFolder", this.value.trim()); });
+    $("updateGithub").addEventListener("change", function () { store("updateGithub", this.checked); });
+    $("btnCheckUpdates").addEventListener("click", function () { if (!state.busy) checkUpdates(false); });
+    $("btnInstallUpdate").addEventListener("click", installUpdate);
+    $("btnUpdateNow").addEventListener("click", installUpdate);
+    $("btnReload").addEventListener("click", reloadPanel);
+    $("btnReloadBanner").addEventListener("click", reloadPanel);
+    $("btnUpdateLater").addEventListener("click", function () {
+      if (state.update) store("skipVersion", state.update.version);   // asked again for the next version, or from Check for updates
+      $("updateBanner").classList.add("hidden");
+    });
   }
 
   function init() {
@@ -192,9 +252,9 @@
     $("btnRefresh").addEventListener("click", function () { if (!state.busy) refresh(); });
     $("btnBegin").addEventListener("click", begin);
     $("btnPlace").addEventListener("click", place);
-    $("btnUpdate").addEventListener("click", update);
+    wireUpdates();
     refresh();
-    checkUpdate();
+    checkUpdates(true);
   }
 
   init();

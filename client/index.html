@@ -15,7 +15,9 @@
 
   <div id="updateBanner" class="card update hidden">
     <span id="updateText"></span>
-    <button id="btnUpdate" class="btn primary small">Update now</button>
+    <button id="btnUpdateNow" class="btn primary small">Update now</button>
+    <button id="btnReloadBanner" class="btn primary small hidden" title="Load the new version now, without restarting Premiere Pro">Reload PodGrip</button>
+    <button id="btnUpdateLater" class="btn ghost small">Later</button>
   </div>
 
   <section class="card">
@@ -44,6 +46,23 @@
     <p class="muted" id="placeHelp">Once you've made the multicam from the nests: puts it on V1 of the (Program) sequence at the start, video only. The mics on A1–A4 aren't touched.</p>
     <div id="placeStatus" class="status"></div>
   </section>
+
+  <details class="card" id="updatesBox">
+    <summary>Updates</summary>
+    <div class="kv" style="margin-top:8px"><b>Installed</b><span id="verInstalled"></span><b>Latest</b><span id="verLatest">not checked yet</span></div>
+    <label class="field">Update folder
+      <input id="updateFolder" placeholder="Optional: a shared folder with PodGrip-x.y.z-Windows.zip files" />
+    </label>
+    <label class="check"><input type="checkbox" id="updateGithub" checked /> Also check GitHub releases</label>
+    <div class="row">
+      <button id="btnCheckUpdates" class="btn">Check for updates</button>
+      <button id="btnInstallUpdate" class="btn primary" disabled>Install update</button>
+    </div>
+    <div class="row">
+      <button id="btnReload" class="btn ghost small" title="Reload the panel and its Premiere script from disk, e.g. after an update. Your settings are kept.">Reload PodGrip</button>
+    </div>
+    <div id="updateStatus" class="muted"></div>
+  </details>
 
   <details class="card">
     <summary>Log</summary>
