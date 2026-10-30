@@ -123,8 +123,9 @@
       var n = prep.names, warn = prep.warnings.length ? "\n\nCheck these: " + prep.warnings.join("; ") : "";
       status("Assembled episode " + ep + ": " + [n.sync].concat(prep.promos ? [n.promos] : [], n.nests, [n.main]).join(", ") + " are in the " + BIN + " bin." + warn,
         prep.warnings.length ? "warn" : "ok");
-      $("nextText").textContent = "Select " + n.nests.join(" and ") + " in the " + BIN + " bin, right-click › Create Multi-Camera Source Sequence " +
-        "(Synchronize Point: In Points; Camera Names: Use Clip Names) and name it " + n.mc + ". Put it on V1 of " + n.main +
+      $("nextText").textContent = "Select " + n.nests.join(" and ") + " in the " + BIN + " bin, right-click › Create Multi-Camera Source Sequence. " +
+        "At the top, set the name menu to Custom and type " + n.mc + " (\"Video Clip Name +\" would add the clip's name in front). " +
+        "Synchronize Point: In Points; Camera Names: Use Clip Names. Put it on V1 of " + n.main +
         " at the start, where the marker is. The mics are already on A1–A4.";
       $("nextBox").classList.remove("hidden");
     }).catch(function (e) {

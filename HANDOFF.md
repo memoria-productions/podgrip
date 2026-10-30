@@ -59,7 +59,7 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
     - the main sequence `classical_et_cetera_<ep>`, with mics 1–4 on A1–A4, V1 empty, and a marker at 0 with the one step to do.
   - **The multicam is made in Premiere** (David's choice):
     - select the two nests;
-    - Create Multi-Camera Source Sequence, Synchronize Point: In Points (no In marks set; Premiere 2025 has no "Clip Start");
+    - Create Multi-Camera Source Sequence, name menu **Custom** (the default "Video Clip Name +" makes `246_a_cam246_mc`), Synchronize Point: In Points (no In marks set; Premiere 2025 has no "Clip Start");
     - name it `<ep>_mc`;
     - put it on V1 at 0.
 

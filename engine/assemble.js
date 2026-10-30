@@ -42,10 +42,13 @@
       nests: nestNames(plan, ep), mc: ep + "_mc", main: "classical_et_cetera_" + ep + (inTemplate ? " (Program)" : "") };
   }
 
-  /** The one step left to do in Premiere, in David's words. */
+  /**
+   * The one step left to do in Premiere, in David's words. The dialog's name menu defaults to "Video Clip Name +",
+   * which puts the first clip's name in front ("246_a_cam246_mc"): Custom gives the name as typed.
+   */
   function mcStep(n) {
-    return "Select " + n.nests.join(" and ") + ", right-click › Create Multi-Camera Source Sequence (Synchronize Point: " +
-      "In Points, with no In marks set; Camera Names: Use Clip Names), name it " + n.mc + " and put it on V1 at 0.";
+    return "Select " + n.nests.join(" and ") + ", right-click › Create Multi-Camera Source Sequence. Set the name menu to Custom and type " +
+      n.mc + "; Synchronize Point: In Points (no In marks set); Camera Names: Use Clip Names. Put it on V1 at 0.";
   }
 
   /**
