@@ -13,7 +13,8 @@
  * plan(clips, opts) where clips are
  *   { kind: "camera", name, path, body, lens, tc (frames, null = no LTC), frames (length) }
  *   { kind: "wav", name, path, date (yymmdd), take, part, tc, frames, channels }   (take null = not an F6 file)
- * opts: { date: the episode day (yymmdd), gapFrames between takes (2 s), expectWide (true: warn if no 24-70) }
+ * opts: { date: the episode day (yymmdd), gapFrames between takes (2 s), leadFrames of space before the first
+ *   clip (0), expectWide (true: warn if no 24-70) }
  * split(clips, opts) separates the episode take from the short promo takes, each laid out with plan().
  * Positions are in timeline frames at 23.976 (timecode frames at 24 nominal map 1:1 onto them).
  */
@@ -80,7 +81,8 @@
     });
 
     // Take extents (cameras can start before or run past the audio), then lay the takes end to end.
-    var pos = 0;
+    // Lead-in: David leaves room before the first clip so a sync nudge never pushes media off the left edge.
+    var pos = opts.leadFrames || 0;
     takeList.forEach(function (t) {
       t.cams.forEach(function (c) { t.lo = Math.min(t.lo, c.rel); t.hi = Math.max(t.hi, c.rel + c.frames); });
       t.offset = pos - t.lo;

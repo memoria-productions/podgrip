@@ -51,6 +51,8 @@ It's distilled from PodDirector (`#poddirector`), which does the camera cutting 
 
 `M:\Video\#Assets\Graphics\Memoria Press\Memoria YouTube Notifications\Finals\` holds `MP Final Comp.mov` and `YT Final Comp.mov`.
 
+**David's Premiere template:** `...\classical_et_cetera\#global\project_files\premiere_pro\classical_et_ceterea_###_25.2.prproj`. It holds his audio processing and the templated media (sequences `classical_et_cetera_###` and `classical_et_cetera_###_promo_9x16`). New episodes start from a copy of it, so PodGrip's XML is imported into that copy. Never write to the template itself.
+
 ### Recording setup
 
 - **Zoom F6:** 48 kHz, 32-bit float. The tracks are only named Tr1–Tr5. The default seats are **1 Martin, 2 Tanya, 3 Jessica, 4 Paul**.
@@ -333,12 +335,18 @@ Existing data to start from (on David's PC):
    - **David's choice, 2026-10-30:** a real, re-switchable **nested multicam** (question 1 in section 10). It's its own step of the plugin, separate from sync: `podgrip assemble <episode folder>` (`engine/assemble.js`).
    - **What Premiere 2025 takes from XML (David's import tests on ep 243, 2026-10-30):**
      - Nested sequences import fine, on their own and stacked inside another sequence.
-     - A multiclip whose angles are camera clips imports as a real, switchable multicam (`[MC1]`).
      - A multiclip whose angles are nested sequences makes the whole import fail ("may be damaged or contain outdated elements").
-   - **So `podgrip assemble` writes** `<WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml`:
+     - A multiclip whose angles are camera clips imports as a switchable multicam (`[MC1]`), but **every angle starts at its file's first frame**. Premiere ignores clip positions, `<in>` trims, In/Out marks on the angle and black slug filler.
+       - Read back from the saved project: `243_mc` had both files at 0. The dolly really starts 1.50 s after the wide, so the wide played 1.5 s early.
+       - So an XML multicam is only in sync when the cameras started recording together, and they never do.
+     - David's own ep 243 `243_mc` has the dolly nest 1.46 s after the wide. PodGrip's LTC gives 1.50 s (1 frame apart). Resolve's sequence had 3.0 s: David's "+1.5 s" fix, by eye.
+   - **David's choice: nests from the XML, the multicam in one step in Premiere.** `podgrip assemble` writes `<WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml` with:
      - the `(Sync)` sequence, and the promos' own `promos (Sync)` sequence;
-     - `<ep>_mc`, a multiclip whose angles hold each camera's clips at their synced positions, which does the job of David's nests. The angles take his nest names: `<ep>_b_cam` is the wide (angle 1, as in every past edit) and `<ep>_a_cam` the dolly.
-     - The main sequence `classical_et_cetera_<ep>` has `_mc` on V1 and mics 1–4 on A1–A4.
+     - the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly). Each holds its camera at its synced position on the episode's timeline, where 0 is the same instant in every nest;
+     - the main sequence `classical_et_cetera_<ep>`, with mics 1–4 on A1–A4, V1 left empty, and a marker at 0 saying how to make the multicam.
+
+     David then selects the nests, chooses Create Multi-Camera Source Sequence (Sync Point: Clip Start, no audio), names it `<ep>_mc` and puts it on V1 at 0. Once there's a panel, it can do this step (PodDirector already drives Premiere's shortcuts).
+   - **Lead-in:** everything starts 10 s in (`--lead`). David always leaves room at the left in Resolve so a sync nudge never cuts media off.
    - **Promo takes are kept apart** (`sync.split`). The episode is the day's longest F6 take. The other takes are Instagram promo recordings: 0.3–4 min in every 2026 episode, except ep 222's 11.7-min take 2. A "promo" over 5 min is flagged for checking.
    - **Audio channels, fixed 2026-10-30.**
      - The problem: with the WAV `<file>` giving only `<channelcount>5</channelcount>` (as Resolve writes it), Premiere played channel 1 (Martin) on every mono track, even in a new project. That's probably why the Resolve XML "gets the waveforms wrong" too.

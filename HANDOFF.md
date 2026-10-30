@@ -55,17 +55,25 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
   - Output: `C:\Users\david.ward\Documents\PodGrip\assemble\classical_et_cetera_<ep>_assembly.xml`.
   - The file holds:
     - the `(Sync)` sequence, plus a separate `promos (Sync)` sequence for the promo takes;
-    - `<ep>_mc`, whose angles `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly) each hold that camera's clips;
-    - the main sequence `classical_et_cetera_<ep>`, with `_mc` on V1 and mics 1–4 on A1–A4.
+    - the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly), each camera at its synced position;
+    - the main sequence `classical_et_cetera_<ep>`, with mics 1–4 on A1–A4, V1 empty, and a marker at 0 with the one step to do.
+  - **The multicam is made in Premiere** (David's choice):
+    - select the two nests;
+    - Create Multi-Camera Source Sequence, Sync Point: Clip Start, no audio;
+    - name it `<ep>_mc`;
+    - put it on V1 at 0.
+
+    The CLI prints this step after writing the file.
+  - Everything starts 10 s in (`--lead`), as David does in Resolve, so a sync nudge never cuts media off.
   - Everything from the old `Documents\PodAssembler` folder now lives in `Documents\PodGrip`.
-- **Import tests (files in `Documents\PodGrip\import_tests\`):**
-  - Nests import fine, and so does a multicam whose angles are camera clips. David switched angles on it and `_5219` came through.
-  - A multicam whose angles are nested sequences fails the whole import. So `assemble.js` builds the angles from camera clips, and there are no nest sequences (David's choice).
+- **Import tests (files in `Documents\PodGrip\import_tests\`, and `import_tests.prproj` read back with `tools/prproj.js`):**
+  - Nests import fine.
+  - A multicam whose angles are nested sequences fails the whole import.
+  - A multicam whose angles are camera clips imports and switches, but Premiere starts every angle at its file's first frame. That makes cameras that started at different times out of sync: the wide was 1.5 s early on ep 243. So the XML can't carry the multicam (PROJECT.md milestone 1).
 - **Promos:** the short takes besides the episode are Instagram promo recordings. They're synced, but kept out of the episode and the multicam (`sync.split`; see PROJECT.md milestone 1).
 - **Audio channels: fixed.** A2–A5 used to play Martin (channel 1). Each WAV `<file>` now lists its channels one by one, and David heard every mic on its own track (variant B in `import_tests\`). Premiere's own track attributes break this again, so they're left out (PROJECT.md milestone 1).
-- **Next:** David imports the regenerated `assemble\classical_et_cetera_243_assembly.xml` into a new project. Check:
-  - the multicam switches;
-  - A1–A4 carry each mic;
+- **Next:** David imports the regenerated `assemble\classical_et_cetera_243_assembly.xml` into a new project, makes `243_mc` from the nests, and puts it on V1. Check:
+  - both angles are in lip sync with A1–A4;
   - the promos sit in their own `promos (Sync)` sequence.
 
   If all of that holds, merge `feature/assemble-multicam` into `main`.

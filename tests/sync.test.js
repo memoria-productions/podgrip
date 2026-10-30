@@ -15,6 +15,13 @@ test("sync: lays clips out by timecode across midnight, like David's Resolve exp
   assert.deepEqual(p.warnings, []);
 });
 
+test("sync: a lead-in moves everything later by the same amount, so nothing sits at the left edge", () => {
+  const p0 = S.plan(ep243(), { date: "261012" }), p = S.plan(ep243(), { date: "261012", leadFrames: 240 });
+  const starts = (q) => q.video.flatMap((t) => t.clips).concat(q.wavs).map((c) => c.start);
+  assert.deepEqual(starts(p), starts(p0).map((s) => s + 240));
+  assert.equal(p.durationFrames, p0.durationFrames + 240);
+});
+
 test("sync: the wide (24-70) is V1; the F6 channels give the audio tracks", () => {
   const p = S.plan(ep243(), { date: "261012" });
   assert.equal(p.video[0].body, "A7S3_1"); assert.ok(p.video[0].wide);

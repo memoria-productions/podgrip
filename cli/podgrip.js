@@ -3,13 +3,15 @@
  * PodGrip command line.
  *
  *   podgrip timecode <file|episode folder> ...   timecode of camera clips (LTC on their audio) and F6 WAVs (BWF)
- *   podgrip sync <episode folder> [--out file.xml] [--gap seconds]
+ *   podgrip sync <episode folder> [--out file.xml] [--gap seconds] [--lead seconds]
  *       lays the cameras and F6 audio out by timecode and writes an FCP7 XML sequence for Premiere, in place of the
  *       Resolve round trip. Default output: <WORK_DIR>\sync\classical_et_cetera_<ep>_sync.xml
  *       The promo takes (the short recordings besides the episode) get their own "promos (Sync)" sequence.
- *   podgrip assemble <episode folder> [--out file.xml] [--gap seconds]
- *       the synced sequences plus the <ep>_mc multicam (angles <ep>_b_cam = wide, <ep>_a_cam = dolly) on V1 of
- *       the main sequence classical_et_cetera_<ep>, with mics 1–4 on A1–A4.
+ *       --lead: space before the first clip (10 s), so a sync nudge never pushes media off the left edge.
+ *   podgrip assemble <episode folder> [--out file.xml] [--gap seconds] [--lead seconds]
+ *       the synced sequences plus the camera nests (<ep>_b_cam = wide, <ep>_a_cam = dolly) and the main sequence
+ *       classical_et_cetera_<ep> with mics 1–4 on A1–A4. The <ep>_mc multicam is made from the nests in Premiere
+ *       (one step; printed at the end) and goes on V1.
  *       Default output: <WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml
  */
 "use strict";
@@ -54,7 +56,7 @@ function synced(args, usage) {
   const dir = args.find((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--")));
   if (!dir || !fs.existsSync(dir)) { console.error("usage: " + usage); process.exit(1); }
   const ep = E.read(dir, PATHS.FFMPEG, (m) => process.stderr.write(m + "\n"));
-  const { episode: plan, promos } = S.split(ep.clips, { date: ep.f6Date, gapFrames: Math.round(Number(opt(args, "--gap", 2)) * 24) });
+  const { episode: plan, promos } = S.split(ep.clips, { date: ep.f6Date, gapFrames: Math.round(Number(opt(args, "--gap", 2)) * 24), leadFrames: Math.round(Number(opt(args, "--lead", 10)) * 24) });
   const id = ep.ep || ep.slug, name = "classical_et_cetera_" + id + " (Sync)";
   const markers = plan.video.flatMap((t) => t.clips).filter((c) => c.unsynced)
     .map((c) => ({ frame: c.start, name: "Not synced: " + c.name, comment: "No timecode on this clip's audio, or it overlaps none of the F6 audio. Line it up by hand." }));
@@ -79,20 +81,21 @@ function writeOut(file, text) {
 }
 
 function sync(args) {
-  const { plan, promos, id, name, markers } = synced(args, "podgrip sync <episode folder> [--out file.xml] [--gap seconds]");
+  const { plan, promos, id, name, markers } = synced(args, "podgrip sync <episode folder> [--out file.xml] [--gap seconds] [--lead seconds]");
   const p = promos && { plan: promos, name: "classical_et_cetera_" + id + " promos (Sync)" };
   writeOut(opt(args, "--out", path.join(PATHS.WORK_DIR, "sync", "classical_et_cetera_" + id + "_sync.xml")), XM.write(plan, { name, markers, promos: p }));
 }
 
 function assemble(args) {
-  const { plan, promos, id, markers } = synced(args, "podgrip assemble <episode folder> [--out file.xml] [--gap seconds]");
+  const { plan, promos, id, markers } = synced(args, "podgrip assemble <episode folder> [--out file.xml] [--gap seconds] [--lead seconds]");
   const n = A.names(plan, id);
-  console.log("\n  Multicam " + n.mc + " (angles " + n.angles.join(", ") + ") on V1 of " + n.main + ", mics 1-" + Math.min(4, plan.channels) + " on A1-A" + Math.min(4, plan.channels));
+  console.log("\n  Nests " + n.nests.join(", ") + "; " + n.main + " with mics 1-" + Math.min(4, plan.channels) + " on A1-A" + Math.min(4, plan.channels));
   writeOut(opt(args, "--out", path.join(PATHS.WORK_DIR, "assemble", "classical_et_cetera_" + id + "_assembly.xml")), A.xml(plan, { ep: id, markers, promos }));
+  console.log("\nIn Premiere, after importing it: " + A.mcStep(n));
 }
 
-const USAGE = "usage:\n  podgrip timecode <file|episode folder> ...\n  podgrip sync <episode folder> [--out file.xml] [--gap seconds]\n" +
-  "  podgrip assemble <episode folder> [--out file.xml] [--gap seconds]";
+const USAGE = "usage:\n  podgrip timecode <file|episode folder> ...\n  podgrip sync <episode folder> [--out file.xml] [--gap seconds] [--lead seconds]\n" +
+  "  podgrip assemble <episode folder> [--out file.xml] [--gap seconds] [--lead seconds]";
 if (cmd === "timecode") timecode(rest);
 else if (cmd === "sync") sync(rest);
 else if (cmd === "assemble") assemble(rest);
