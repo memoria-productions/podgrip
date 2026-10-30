@@ -83,3 +83,69 @@ test("host: a missing XML or no open project is reported, not imported", () => {
   assert.match(P.call("importXml", "M:\\nope.xml", "PodGrip").error, /isn't there/);
   assert.equal(P.imports.length, 0);
 });
+
+/**
+ * Premiere with a (Program) sequence: mics on A1–A4 from 10 s, V1 empty, and 246_mc made. `audio` says what placing
+ * the multicam does with its empty audio: "none", "skip-locked" (lands on A1 unless it's locked), or "cuts" (lands
+ * on A1 even when locked, cutting Martin's mic).
+ */
+function withProgram(audio, opts) {
+  opts = opts || {};
+  const time = (s) => ({ seconds: s, ticks: String(Math.round(s * 254016000000)) });
+  const clipList = (items) => { const l = items.slice(); Object.defineProperty(l, "numItems", { get: () => l.length }); return l; };
+  const clip = (name, s, e, list) => { const c = { name, start: time(s), end: time(e), remove: () => list.splice(list.indexOf(c), 1) }; return c; };
+  const track = () => { const t = { clips: clipList([]), locked: false }; t.isLocked = () => t.locked; t.setLocked = (v) => { t.locked = !!v; }; return t; };
+  const tracks = (n) => Object.assign(Array.from({ length: n }, track), { numTracks: n });
+  const program = { name: "classical_et_cetera_246 (Program)", sequenceID: "p1", videoTracks: tracks(1), audioTracks: tracks(4) };
+  program.audioTracks.forEach((t, i) => t.clips.push(clip("261026_001.WAV", 10, 3110, t.clips)));
+  if (opts.v1Busy) program.videoTracks[0].clips.push(clip("something", 0, 5, program.videoTracks[0].clips));
+  const mc = { name: "246_mc", sequenceID: "m1", projectItem: { name: "246_mc" } };
+  program.videoTracks[0].overwriteClip = (pi, at) => {
+    const v = program.videoTracks[0].clips;
+    v.push(clip(pi.name, at, 3110, v));
+    const a1 = program.audioTracks[0];
+    if (audio === "none" || (audio === "skip-locked" && a1.locked)) return;
+    a1.clips[0].end = time(0); a1.clips[0].start = time(3110);   // the overwrite eats the mic underneath
+    a1.clips.push(clip(pi.name, at, 3110, a1.clips));
+  };
+  const seqs = (opts.noMc ? [program] : [program, mc]);
+  const opened = [];
+  const ctx = { app: { version: "25.2.0", project: { sequences: Object.assign(seqs.slice(), { numSequences: seqs.length }), openSequence: (id) => opened.push(id) } }, File: function () {} };
+  vm.createContext(ctx);
+  vm.runInContext(SRC, ctx);
+  const call = (fn, ...args) => JSON.parse(vm.runInContext("PG." + fn + "(" + args.map((a) => JSON.stringify(a)).join(",") + ")", ctx));
+  return { call, program, opened };
+}
+
+const PLACE = ["246_mc", "classical_et_cetera_246 (Program)"];
+
+test("host: Place multicam puts 246_mc on V1 at the start and leaves the mics alone", () => {
+  const P = withProgram("none");
+  const r = P.call("placeMulticam", ...PLACE);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.placedAt, 0);
+  assert.deepEqual(P.opened, ["p1"], "the program sequence is opened");
+  assert.equal(P.program.videoTracks[0].clips[0].name, "246_mc");
+  assert.ok(P.program.audioTracks.every((t) => t.clips.length === 1 && t.clips[0].start.seconds === 10 && !t.locked), "mics as they were, tracks unlocked again");
+});
+
+test("host: with the audio tracks locked, the multicam's empty audio doesn't land on the mics", () => {
+  const P = withProgram("skip-locked");
+  const r = P.call("placeMulticam", ...PLACE);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(P.program.audioTracks[0].clips.length, 1);
+  assert.equal(P.program.audioTracks[0].clips[0].name, "261026_001.WAV");
+});
+
+test("host: if placing cut into a mic anyway, it says so and how to undo", () => {
+  const r = withProgram("cuts").call("placeMulticam", ...PLACE);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /Ctrl\+Z/);
+});
+
+test("host: no multicam yet, or something already on V1, stops before touching anything", () => {
+  assert.match(withProgram("none", { noMc: true }).call("placeMulticam", ...PLACE).error, /no 246_mc yet.*Custom/);
+  const busy = withProgram("none", { v1Busy: true });
+  assert.match(busy.call("placeMulticam", ...PLACE).error, /already has something on V1/);
+  assert.equal(busy.program.videoTracks[0].clips.length, 1);
+});

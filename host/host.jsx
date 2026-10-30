@@ -7,6 +7,7 @@
  *   PG.renameTemplateSequences(ep)    "classical_et_cetera_###…" -> "classical_et_cetera_<ep>…" (David's template)
  *   PG.findBin(name)                  is there already a bin of that name at the top of the project? (and what's in it)
  *   PG.importXml(file, binName)       import an FCP7 XML into a top-level bin, with no dialog
+ *   PG.placeMulticam(mc, program)     put <ep>_mc on V1 of the program sequence at the start, video only, mics untouched
  */
 
 #target premierepro
@@ -92,5 +93,53 @@ var PG = (function () {
     return ok({ items: contents(bin) });
   }
 
-  return { ping: ping, renameTemplateSequences: renameTemplateSequences, findBin: findBin, importXml: importXml };
+  function sequenceNamed(name) {
+    var seqs = app.project.sequences, i;
+    for (i = 0; i < seqs.numSequences; i++) if (seqs[i].name === name) return seqs[i];
+    return null;
+  }
+
+  /** Every audio clip in a sequence as "track|name|start|end", to check nothing moved. */
+  function audioSnapshot(seq) {
+    var out = [], t, i;
+    for (t = 0; t < seq.audioTracks.numTracks; t++) {
+      var clips = seq.audioTracks[t].clips;
+      for (i = 0; i < clips.numItems; i++) out.push(t + "|" + clips[i].name + "|" + clips[i].start.ticks + "|" + clips[i].end.ticks);
+    }
+    return out;
+  }
+
+  /**
+   * Put the multicam David made from the nests on V1 of the program sequence, at the very start, video only.
+   * A script can't switch off source patching, so the audio tracks are locked while it's placed, any (empty) audio
+   * the multicam still brings is removed, and the mics are checked against how they were before.
+   */
+  function placeMulticam(mcName, programName) {
+    if (!app.project) return fail("No project is open.");
+    var mc = sequenceNamed(mcName), seq = sequenceNamed(programName), t;
+    if (!mc) return fail("There's no " + mcName + " yet. Make it from the nests first (Create Multi-Camera Source Sequence, name menu Custom).");
+    if (!seq) return fail("Can't find the sequence " + programName + ". Run Begin episode assembly first.");
+    var v1 = seq.videoTracks[0];
+    if (v1.clips.numItems > 0) return fail(programName + " already has something on V1. Clear V1 first, or place " + mcName + " by hand.");
+    app.project.openSequence(seq.sequenceID);
+    var before = audioSnapshot(seq), locked = [];
+    for (t = 0; t < seq.audioTracks.numTracks; t++) {
+      try { if (!seq.audioTracks[t].isLocked()) { seq.audioTracks[t].setLocked(1); locked.push(t); } } catch (e1) { /* older versions: checked below */ }
+    }
+    try { v1.overwriteClip(mc.projectItem, 0); }
+    finally { for (t = 0; t < locked.length; t++) { try { seq.audioTracks[locked[t]].setLocked(0); } catch (e2) { /* nothing to undo */ } } }
+    if (v1.clips.numItems === 0) return fail("Premiere didn't place " + mcName + " on V1. Place it by hand: turn off the A1 source patch, put the playhead at the start, select " + mcName + " and press . (Overwrite).");
+    // Anything new on the audio tracks named like the multicam is its empty audio: take it out.
+    var removed = 0, i;
+    for (t = 0; t < seq.audioTracks.numTracks; t++) {
+      var clips = seq.audioTracks[t].clips;
+      for (i = clips.numItems - 1; i >= 0; i--) if (clips[i].name === mcName) { clips[i].remove(0, 0); removed++; }
+    }
+    var after = audioSnapshot(seq);
+    if (after.join("\n") !== before.join("\n"))
+      return fail("Placing " + mcName + " changed the audio tracks, so the mics may have been cut. Press Ctrl+Z in Premiere to undo, then place it by hand (A1 source patch off, then Overwrite).");
+    return ok({ placedAt: v1.clips[0].start.seconds, removedAudio: removed });
+  }
+
+  return { ping: ping, renameTemplateSequences: renameTemplateSequences, findBin: findBin, importXml: importXml, placeMulticam: placeMulticam };
 })();

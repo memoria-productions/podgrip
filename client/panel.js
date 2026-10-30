@@ -65,12 +65,14 @@
   function refresh() {
     state.dir = state.info = null;
     $("btnBegin").disabled = true;
+    $("btnPlace").disabled = true;
     return callHost("ping").then(function (r) {
       state.project = r.projectPath;
       if (!state.project) return showEpisode("Save the project into the episode's project_files\\premiere folder first.");
       state.dir = state.LA.episodeDir(state.project);
       if (!state.dir) return showEpisode("This project isn't inside an episode folder named yyyymmdd_###_title. Save it in <episode>\\project_files\\premiere\\.");
       state.info = state.E.folderInfo(state.dir);
+      $("btnPlace").disabled = false;
       var m = state.E.listMedia(state.dir);
       showEpisode(null, [
         ["Episode", state.info.ep], ["Title", state.info.slug.replace(/_/g, " ")], ["Recorded", state.info.date],
@@ -126,7 +128,7 @@
       $("nextText").textContent = "Select " + n.nests.join(" and ") + " in the " + BIN + " bin, right-click › Create Multi-Camera Source Sequence. " +
         "At the top, set the name menu to Custom and type " + n.mc + " (\"Video Clip Name +\" would add the clip's name in front). " +
         "Synchronize Point: In Points; Camera Names: Use Clip Names. Put it on V1 of " + n.main +
-        " at the start, where the marker is. The mics are already on A1–A4.";
+        " at the start, where the marker is: the Place multicam button below does that. The mics are already on A1–A4.";
       $("nextBox").classList.remove("hidden");
     }).catch(function (e) {
       var items = $("steps").querySelectorAll("li.doing");
@@ -134,6 +136,25 @@
       status(e.message || String(e), "err");
       log("stopped: " + (e.stack || e.message || e));
     }).then(function () { state.busy = false; $("btnBegin").disabled = !state.dir; });
+  }
+
+  /** The multicam and the program sequence, by the names engine/assemble.js gives them in the template. */
+  function mcNames() { return { mc: state.info.ep + "_mc", main: "classical_et_cetera_" + state.info.ep + " (Program)" }; }
+
+  function place() {
+    if (state.busy || !state.info) return;
+    var n = mcNames(), el = $("placeStatus");
+    state.busy = true; $("btnPlace").disabled = true;
+    el.className = "status"; el.textContent = "Placing " + n.mc + "…";
+    callHost("placeMulticam", [n.mc, n.main]).then(function (r) {
+      el.className = "status ok";
+      el.textContent = n.mc + " is on V1 of " + n.main + " at the start" + (r.removedAudio ? ", without its empty audio" : "") +
+        ". Copy V1 and A1–A4 from there into the template's main sequence.";
+      log("placed " + n.mc + " at " + r.placedAt + " s; removed " + r.removedAudio + " empty audio piece(s)");
+    }).catch(function (e) {
+      el.className = "status err"; el.textContent = e.message;
+      log("place multicam: " + e.message);
+    }).then(function () { state.busy = false; $("btnPlace").disabled = !state.info; });
   }
 
   /** A newer release on GitHub (memoria-productions/podgrip) shows a banner; quiet when offline or up to date. */
@@ -170,6 +191,7 @@
     state.U = require(path.join(state.extRoot, "lib", "updater.js"));
     $("btnRefresh").addEventListener("click", function () { if (!state.busy) refresh(); });
     $("btnBegin").addEventListener("click", begin);
+    $("btnPlace").addEventListener("click", place);
     $("btnUpdate").addEventListener("click", update);
     refresh();
     checkUpdate();

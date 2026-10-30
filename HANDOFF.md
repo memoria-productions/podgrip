@@ -85,7 +85,14 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
   - **Writes** `classical_et_cetera_<ep>_assembly.xml` next to the project.
   - **Imports** it with no dialog into a top-level PodGrip bin (`PG.importXml` → `app.project.importFiles`). If a PodGrip bin already has items, it asks first.
   - **Names:** the XML's ready-made sequence is `classical_et_cetera_<ep> (Program)` (mics on A1–A4, marker at 0), so it doesn't clash with the template's renamed main sequence.
-  - **Then** it shows the one manual step: make `<ep>_mc` from the nests (In Points) and put it on V1 of the Program sequence.
+  - **Then** it shows the one manual step: make `<ep>_mc` from the nests (name menu Custom, In Points).
+  - **Place multicam** (`PG.placeMulticam`, added after v0.1.0):
+    - opens the `(Program)` sequence and overwrites `<ep>_mc` onto V1 at 0;
+    - locks the audio tracks while it does, since a script can't turn off source patching;
+    - removes any empty audio named `<ep>_mc`;
+    - compares every audio clip before and after. If a mic moved, it fails and tells David to press Ctrl+Z.
+
+    Tested against the fake Premiere with three behaviours (no audio, audio skips locked tracks, audio cuts in anyway). Which one Premiere 2025 really has is unknown until David's first run.
 - **Checked offline only:**
   - the host script against a fake Premiere (`tests/host.test.js`);
   - the panel's sync-and-write path on ep 243 (into a temp folder).

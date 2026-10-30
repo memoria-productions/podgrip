@@ -25,7 +25,8 @@ Early. What works today:
     2. reads the timecode and syncs;
     3. writes `classical_et_cetera_<ep>_assembly.xml` next to the project;
     4. imports it, with no dialog, into a **PodGrip** bin: `(Sync)`, `promos (Sync)`, the nests `<ep>_b_cam` / `<ep>_a_cam`, and `classical_et_cetera_<ep> (Program)` with the mics on A1–A4.
-  - It then tells you the one step left: make `<ep>_mc` from the nests (Create Multi-Camera Source Sequence, In Points) and put it on V1.
+  - It then tells you the one step left: make `<ep>_mc` from the nests (Create Multi-Camera Source Sequence, name menu Custom, In Points).
+  - **Place multicam** then puts `<ep>_mc` on V1 of the `(Program)` sequence at the start, video only. It locks the audio tracks while placing, removes the multicam's empty audio, and checks the mics on A1–A4 didn't move. From there, copy it into the template's main sequence.
   - **Install:**
     1. Download `PodGrip-x.y.z-Windows.zip` from the [latest release](https://github.com/memoria-productions/podgrip/releases/latest).
     2. Unzip it and double-click **Install PodGrip.bat**.
