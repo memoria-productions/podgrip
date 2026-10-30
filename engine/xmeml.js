@@ -57,7 +57,11 @@
         line(depth + 2, "<video><samplecharacteristics>" + RATE + "<width>" + W + "</width><height>" + H + "</height></samplecharacteristics></video>");
         line(depth + 2, "<audio><samplecharacteristics><depth>16</depth><samplerate>48000</samplerate></samplecharacteristics><channelcount>2</channelcount></audio>");
       } else {
-        line(depth + 2, "<audio><samplecharacteristics><depth>32</depth><samplerate>48000</samplerate></samplecharacteristics><channelcount>" + c.channels + "</channelcount></audio>");
+        // One mono <audio> per F6 channel. Given only <channelcount>5</channelcount> (as Resolve writes it), Premiere
+        // 2025 plays channel 1 on every track; described channel by channel, each track gets its own mic. Premiere's
+        // own track attributes (premiereTrackType, currentExplodedTrackIndex) break it again: leave them out.
+        for (var ch = 1; ch <= c.channels; ch++)
+          line(depth + 2, "<audio><samplecharacteristics><depth>32</depth><samplerate>48000</samplerate></samplecharacteristics><channelcount>1</channelcount><layout>mono</layout><audiochannel><sourcechannel>" + ch + "</sourcechannel></audiochannel></audio>");
       }
       line(depth + 1, "</media>");
       line(depth, "</file>");

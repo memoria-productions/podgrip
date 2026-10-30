@@ -340,7 +340,10 @@ Existing data to start from (on David's PC):
      - `<ep>_mc`, a multiclip whose angles hold each camera's clips at their synced positions, which does the job of David's nests. The angles take his nest names: `<ep>_b_cam` is the wide (angle 1, as in every past edit) and `<ep>_a_cam` the dolly.
      - The main sequence `classical_et_cetera_<ep>` has `_mc` on V1 and mics 1–4 on A1–A4.
    - **Promo takes are kept apart** (`sync.split`). The episode is the day's longest F6 take. The other takes are Instagram promo recordings: 0.3–4 min in every 2026 episode, except ep 222's 11.7-min take 2. A "promo" over 5 min is flagged for checking.
-   - **Open: audio channels.** In David's later test imports, A2–A5 played channel 1 (Martin) instead of their own channel. The first sync import, into a fresh project, drew distinct waveforms. Next step: re-check in a brand-new empty project.
+   - **Audio channels, fixed 2026-10-30.**
+     - The problem: with the WAV `<file>` giving only `<channelcount>5</channelcount>` (as Resolve writes it), Premiere played channel 1 (Martin) on every mono track, even in a new project. That's probably why the Resolve XML "gets the waveforms wrong" too.
+     - The fix: describe the file channel by channel, one mono `<audio>` per channel with `<audiochannel><sourcechannel>N</sourcechannel></audiochannel>`. David heard every mic on its own track.
+     - Adding Premiere's own track attributes (`premiereTrackType="Mono"`, `currentExplodedTrackIndex`) put everything back on channel 1, so they're left out.
 2. **Offline planner.** Steps 1–8 of section 5 as a Node CLI (`podgrip plan <episode folder>`), producing `<ep>.assembly.json`, plus a replay harness over the 38 episodes.
 3. **Graphics and outro placement.** Deterministic rules from section 3, checked against all 38 episodes.
 4. **Teaser picker.** Ranking, scored by how often David's actual teaser lands in the top 3.

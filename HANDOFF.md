@@ -62,12 +62,13 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
   - Nests import fine, and so does a multicam whose angles are camera clips. David switched angles on it and `_5219` came through.
   - A multicam whose angles are nested sequences fails the whole import. So `assemble.js` builds the angles from camera clips, and there are no nest sequences (David's choice).
 - **Promos:** the short takes besides the episode are Instagram promo recordings. They're synced, but kept out of the episode and the multicam (`sync.split`; see PROJECT.md milestone 1).
-- **Open, and the next thing to fix: audio channels.**
-  - In David's test imports, A2–A5 played Martin (channel 1) and drew no waveform.
-  - The very first sync import drew distinct waveforms on A1–A4.
-  - Suspect: the tests were imported into a project that already held those WAVs, and Premiere reused their master clips. Check with the regenerated ep 243 assembly XML, imported into a **brand-new, empty project**.
-  - If A2 is still Martin there, the fix is in `micTracks` / the WAV `<file>` in `engine/xmeml.js`.
-  - Fallback: David's current routine of re-bringing the audio in from `sync_sound`.
+- **Audio channels: fixed.** A2–A5 used to play Martin (channel 1). Each WAV `<file>` now lists its channels one by one, and David heard every mic on its own track (variant B in `import_tests\`). Premiere's own track attributes break this again, so they're left out (PROJECT.md milestone 1).
+- **Next:** David imports the regenerated `assemble\classical_et_cetera_243_assembly.xml` into a new project. Check:
+  - the multicam switches;
+  - A1–A4 carry each mic;
+  - the promos sit in their own `promos (Sync)` sequence.
+
+  If all of that holds, merge `feature/assemble-multicam` into `main`.
 
 ## Reminders
 - The M: drive is read-only. Never write to it.

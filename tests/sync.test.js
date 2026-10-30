@@ -92,6 +92,11 @@ test("xmeml: writes a sequence Premiere can read: tracks, files once, linked aud
   assert.ok(files.every((f) => full.some((g) => g.attrs.id === f.attrs.id)));
   assert.equal(X.textOf(full.find((f) => /5524/.test(f.attrs.id)), "timecode/string"), "23:59:59:14");
   assert.equal(X.textOf(seq, "marker/name"), "Check");
+  // Each WAV is described channel by channel (with a bare channel count, Premiere plays channel 1 on every track).
+  const wavMedia = X.kids(X.child(full.find((f) => /0001\.WAV/.test(f.attrs.id)), "media"), "audio");
+  assert.deepEqual(wavMedia.map((a) => X.textOf(a, "audiochannel/sourcechannel")), ["1", "2", "3", "4", "5"]);
+  assert.ok(wavMedia.every((a) => X.textOf(a, "channelcount") === "1" && X.textOf(a, "layout") === "mono"));
+  assert.ok(audio.every((t) => !Object.keys(t.attrs).length), "no Premiere track attributes: they undo the mapping");
 });
 
 test("xmeml: path URLs are escaped the way Resolve writes them", () => {
