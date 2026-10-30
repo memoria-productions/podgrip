@@ -43,6 +43,15 @@ test("bwf: read() on a file, and nothing else is a WAV", () => {
   assert.throws(() => B.parseHeader(Buffer.from("not a wav file at all"), 0), /not a WAV/);
 });
 
+test("bwf: a big PAD chunk before the audio, and a data size left at 0 (both seen on F6 files)", () => {
+  const h = header({ ref: 48000, channels: 5, dataBytes: 0 });
+  const pad = Buffer.alloc(8 + 124664); pad.write("PAD ", 0, "ascii"); pad.writeUInt32LE(124664, 4);
+  const at = h.indexOf("data"), withPad = Buffer.concat([h.subarray(0, at), pad, h.subarray(at), Buffer.alloc(5 * 4 * 48000)]);
+  const f = path.join(os.tmpdir(), "pa_bwf_pad.wav");
+  fs.writeFileSync(f, withPad);
+  try { const r = B.read(f); assert.equal(r.samples, 48000); assert.equal(r.durationSec, 1); } finally { fs.unlinkSync(f); }
+});
+
 test("bwf: F6 file names give date, take and split part", () => {
   assert.deepEqual(B.nameParts("260303_001_0002.WAV"), { date: "260303", take: 1, part: 2 });
   assert.deepEqual(B.nameParts("260407_003.WAV"), { date: "260407", take: 3, part: 1 });

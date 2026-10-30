@@ -318,7 +318,16 @@ Existing data to start from (on David's PC):
 
 ## 9. Milestones
 
-0. **Timecode sync tool (do this first; it saves time on every episode).** Timecode reading is done (`engine/ltc.js`, `engine/bwf.js`, `podassembler timecode`, checked by `tools/sync_check.js`). Next is `podassembler sync <episode folder>`. It writes an FCP7 XML in the same shape as the Resolve export (cameras on V1/V2, WAVs below, splits chained, takes in order), so it drops straight into today's Premiere routine. Then test on the next shoot alongside Resolve.
+0. **Timecode sync tool (do this first; it saves time on every episode).** **Built, 2026-10-30:** `podassembler sync <episode folder>` (`engine/sync.js`, `engine/xmeml.js`, `lib/episode.js`).
+   - It writes an FCP7 XML in the shape of the Resolve export: the wide on V1, the dolly on V2, F6 channels on A1–A5, splits chained, takes in order.
+   - `tools/sync_compare.js` puts it level with Resolve on 145 clips across 37 episodes.
+   - Real-world cases it handles:
+     - leftover "Audio Extracted" WAVs;
+     - WAVs from other days in the folder;
+     - two cameras with the same body name (told apart by lens);
+     - F6 files with a big PAD chunk or a zero data size;
+     - clips without timecode (placed at the end with a marker).
+   - **Still to do:** import a generated XML into Premiere and check it, then run it on the next shoot alongside Resolve.
 1. **Prototype the Premiere side (1 week).** Generate an FCP7 XML for ep 243 with the stacked camera cut, mics, graphics, music and markers, and import it. Decide XML vs ExtendScript vs UXP, and whether the multicam step is needed.
 2. **Offline planner.** Steps 1–8 of section 5 as a Node CLI (`podassembler plan <episode folder>`), producing `<ep>.assembly.json`, plus a replay harness over the 38 episodes.
 3. **Graphics and outro placement.** Deterministic rules from section 3, checked against all 38 episodes.

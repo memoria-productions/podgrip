@@ -3,7 +3,10 @@
 PodAssembler is a Premiere Pro plugin (planned) that assembles a whole Classical et cetera episode from raw shoot files. The user is David Ward (Memoria Press), who edits the show himself. **Read PROJECT.md first**: it holds the design, the measured anatomy of 38 finished episodes, David's cutting rules, the recording setup, the milestones and the open questions.
 
 ## Layout
-- `engine/ltc.js`, `engine/bwf.js` are PodAssembler's own.
+- PodAssembler's own code:
+  - `engine/ltc.js`, `bwf.js`, `sync.js`, `xmeml.js` and `xml.js` (pure, UMD);
+  - `lib/` (Node-only helpers, such as `episode.js`);
+  - `cli/podassembler.js` (`timecode`, `sync`).
 - The other `engine/*.js` files, plus `tools/prproj.js` and `tools/analyze_past.js`, are **copied from PodDirector** (`../#poddirector`, https://github.com/memoria-productions/poddirector).
   - Don't edit the copies here. Change them in PodDirector, then run `npm run sync-poddirector`.
   - `engine/PODDIRECTOR.txt` records the source commit.

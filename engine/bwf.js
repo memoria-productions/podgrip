@@ -28,7 +28,11 @@
         info.originator = b.toString("ascii", o + 8 + 256, o + 8 + 288).replace(/\0[\s\S]*$/, "");
         info.timeReference = b.readUInt32LE(o + 8 + 338) + b.readUInt32LE(o + 8 + 342) * 4294967296;
       }
-      if (id === "data") { info.dataBytes = size === 0xffffffff ? (ds64 !== null ? ds64 : fileSize - (o + 8)) : size; break; }
+      if (id === "data") {
+        // 0xFFFFFFFF = RF64 (size in ds64). 0 = the size was never filled in (seen on F6 files): use the file's length.
+        info.dataBytes = size === 0xffffffff && ds64 !== null ? ds64 : (size === 0xffffffff || size === 0) && fileSize ? fileSize - (o + 8) : size;
+        break;
+      }
       o += 8 + size + (size & 1);
     }
     var frameBytes = info.channels * info.bits / 8;
@@ -42,8 +46,13 @@
     var fs = require("fs");
     var fd = fs.openSync(file, "r");
     try {
-      var b = Buffer.alloc(1 << 16), n = fs.readSync(fd, b, 0, b.length, 0);
-      return parseHeader(b.subarray(0, n), fs.fstatSync(fd).size);
+      var size = fs.fstatSync(fd).size, info;
+      // Usually the data chunk starts within 64 KB; some F6 files put a large PAD chunk first, so read further then.
+      for (var len = 1 << 16; ; len *= 8) {
+        var b = Buffer.alloc(Math.min(len, size)), n = fs.readSync(fd, b, 0, b.length, 0);
+        info = parseHeader(b.subarray(0, n), size);
+        if (info.dataBytes !== null || n >= size || len >= 1 << 24) return info;
+      }
     } finally { fs.closeSync(fd); }
   }
 
