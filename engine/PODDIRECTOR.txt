@@ -1,0 +1,14 @@
+Shared files copied from PodDirector 0.17.0 (commit 97e2fda, with uncommitted changes:
+M engine/director.js
+ M tools/analyze_past.js)
+Refresh with: node scripts/sync-poddirector.js
+
+engine/analyzer.js
+engine/director.js
+engine/motion.js
+engine/framing.js
+engine/transcript.js
+engine/transcriber.js
+engine/keys.js
+tools/prproj.js
+tools/analyze_past.js
