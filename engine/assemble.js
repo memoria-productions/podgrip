@@ -9,7 +9,7 @@
  *   classical_et_cetera_<ep>                 the main sequence: mic channels 1–4 on A1–A4, V1 left for <ep>_mc,
  *                                            with a marker at 0 saying how to make it
  * The multicam itself (<ep>_mc) is made in Premiere: select the nests, Create Multi-Camera Source Sequence with
- * Sync Point "Clip Start", and put it on V1 at 0. The nests all start at the audio's 0, so it lands in sync.
+ * Synchronize Point "In Points" (no In marks set, so the nests line up by their starts), and put it on V1 at 0. The nests all start at the audio's 0, so it lands in sync.
  * It can't come in the XML. Premiere 2025 fails the whole import when a multiclip's angles are nested sequences,
  * and with clips as angles it starts every angle at its file's first frame, ignoring positions, trims and In
  * marks. Cameras that started recording at different times then can't be in sync (David's tests on ep 243,
@@ -39,8 +39,8 @@
 
   /** The one step left to do in Premiere, in David's words. */
   function mcStep(n) {
-    return "Select " + n.nests.join(" and ") + ", right-click › Create Multi-Camera Source Sequence (Sync Point: Clip Start, " +
-      "no audio), name it " + n.mc + " and put it on V1 at 0.";
+    return "Select " + n.nests.join(" and ") + ", right-click › Create Multi-Camera Source Sequence (Synchronize Point: " +
+      "In Points, with no In marks set; Camera Names: Use Clip Names), name it " + n.mc + " and put it on V1 at 0.";
   }
 
   /**

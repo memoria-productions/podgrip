@@ -345,7 +345,8 @@ Existing data to start from (on David's PC):
      - the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly). Each holds its camera at its synced position on the episode's timeline, where 0 is the same instant in every nest;
      - the main sequence `classical_et_cetera_<ep>`, with mics 1–4 on A1–A4, V1 left empty, and a marker at 0 saying how to make the multicam.
 
-     David then selects the nests, chooses Create Multi-Camera Source Sequence (Sync Point: Clip Start, no audio), names it `<ep>_mc` and puts it on V1 at 0. Once there's a panel, it can do this step (PodDirector already drives Premiere's shortcuts).
+     David then selects the nests, chooses Create Multi-Camera Source Sequence (Synchronize Point: In Points, with no In marks set; the nests have no audio), names it `<ep>_mc` and puts it on V1 at 0. Once there's a panel, it can do this step (PodDirector already drives Premiere's shortcuts).
+     - **Checked by David on ep 243, 2026-10-30:** both angles are in lip sync, and every mic is on its own track.
    - **Lead-in:** everything starts 10 s in (`--lead`). David always leaves room at the left in Resolve so a sync nudge never cuts media off.
    - **Promo takes are kept apart** (`sync.split`). The episode is the day's longest F6 take. The other takes are Instagram promo recordings: 0.3–4 min in every 2026 episode, except ep 222's 11.7-min take 2. A "promo" over 5 min is flagged for checking.
    - **Audio channels, fixed 2026-10-30.**

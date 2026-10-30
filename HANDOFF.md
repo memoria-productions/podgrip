@@ -59,7 +59,7 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
     - the main sequence `classical_et_cetera_<ep>`, with mics 1–4 on A1–A4, V1 empty, and a marker at 0 with the one step to do.
   - **The multicam is made in Premiere** (David's choice):
     - select the two nests;
-    - Create Multi-Camera Source Sequence, Sync Point: Clip Start, no audio;
+    - Create Multi-Camera Source Sequence, Synchronize Point: In Points (no In marks set; Premiere 2025 has no "Clip Start");
     - name it `<ep>_mc`;
     - put it on V1 at 0.
 
@@ -72,11 +72,11 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
   - A multicam whose angles are camera clips imports and switches, but Premiere starts every angle at its file's first frame. That makes cameras that started at different times out of sync: the wide was 1.5 s early on ep 243. So the XML can't carry the multicam (PROJECT.md milestone 1).
 - **Promos:** the short takes besides the episode are Instagram promo recordings. They're synced, but kept out of the episode and the multicam (`sync.split`; see PROJECT.md milestone 1).
 - **Audio channels: fixed.** A2–A5 used to play Martin (channel 1). Each WAV `<file>` now lists its channels one by one, and David heard every mic on its own track (variant B in `import_tests\`). Premiere's own track attributes break this again, so they're left out (PROJECT.md milestone 1).
-- **Next:** David imports the regenerated `assemble\classical_et_cetera_243_assembly.xml` into a new project, makes `243_mc` from the nests, and puts it on V1. Check:
-  - both angles are in lip sync with A1–A4;
-  - the promos sit in their own `promos (Sync)` sequence.
-
-  If all of that holds, merge `feature/assemble-multicam` into `main`.
+- **Checked in Premiere 2025 by David, 2026-10-30:** the ep 243 assembly XML imports cleanly, and every mic is on its own track. The `243_mc` he made from the nests (In Points) has **both angles in lip sync**. Milestone 1's multicam step works.
+- **Next:** merge `feature/assemble-multicam` into `main` once David agrees, then:
+  - try `podgrip assemble` on the next shoot alongside Resolve;
+  - import the XML into a copy of David's template project (PROJECT.md section 2) rather than a blank one;
+  - for the episodes where a camera has a second clip within the episode (216, 222, 224, 231, 232, 234, 238), check that the nests hold both clips in sync.
 
 ## Reminders
 - The M: drive is read-only. Never write to it.

@@ -23,7 +23,7 @@ test("assemble: the synced episode, the promos apart, a nest per camera and the 
   assert.equal(seqs.flatMap((s) => X.all(s, "multiclip")).length, 0);
 });
 
-test("assemble: each nest holds its camera at its synced position from the audio's 0, so Clip Start sync lines them up", () => {
+test("assemble: each nest holds its camera at its synced position from the audio's 0, so In Points sync (no marks) lines them up", () => {
   const { episode } = split243();
   const seqs = sequences(A.xml(episode, { ep: "243" }));
   [["243_b_cam", 0], ["243_a_cam", 1]].forEach(([name, i]) => {
@@ -46,7 +46,7 @@ test("assemble: the main sequence has the mics from the audio's 0, V1 left for t
   assert.equal(audio.length, 4, "mics 1–4 on A1–A4; the empty channel 5 left off");
   assert.deepEqual(X.kids(audio[1], "clipitem").map((c) => +X.textOf(c, "start")), episode.wavs.map((w) => w.start));
   assert.equal(X.textOf(main, "marker/name"), "Put 243_mc here");
-  assert.match(X.textOf(main, "marker/comment"), /243_b_cam and 243_a_cam.*Create Multi-Camera Source Sequence.*Clip Start/);
+  assert.match(X.textOf(main, "marker/comment"), /243_b_cam and 243_a_cam.*Create Multi-Camera Source Sequence.*In Points/);
 });
 
 test("assemble: the synced sequence inside is the same one sync writes", () => {
