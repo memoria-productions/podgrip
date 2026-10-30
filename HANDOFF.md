@@ -53,17 +53,21 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
   ```
   - `engine/assemble.js` builds it, writing through the shared helpers in `engine/xmeml.js`.
   - Output: `C:\Users\david.ward\Documents\PodGrip\assemble\classical_et_cetera_<ep>_assembly.xml`.
-  - The file holds the `(Sync)` sequence, the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly), the `<ep>_mc` multiclip of the two with no audio, and the main sequence `classical_et_cetera_<ep>` with `_mc` on V1 and mics 1–4 on A1–A4.
-  - The ep 243 and ep 244 files are made. They're byte-identical to the first prototype, and the sync XML is unchanged.
-  - Everything from the old `Documents\PodAssembler` folder now lives in `Documents\PodGrip`: `sync\`, `assemble\` and the `compare\curves` cache.
-- **Next: David imports `assemble\classical_et_cetera_243_assembly.xml` into a scratch project.** Check:
-  1. Does `243_mc` come in as a real multicam? It should right-click → Multi-Camera → Enable, and switch angles in the Program Monitor.
-  2. Do `243_b_cam` and `243_a_cam` show in the bin as sequences, with the clips at the synced positions?
-  3. Is the main sequence `classical_et_cetera_243` there, with `_mc` on V1 and mono mics on A1–A4 in sync?
-- **If the multiclip doesn't survive the import:**
-  - Keep the nests from the XML.
-  - Build `_mc` with PodDirector's keystroke builder (Create Multi-Camera Source Sequence has no script API).
-- **Not done yet:** Black Video in the nests' gaps, the way David's own nests have it. Add it if the multicam needs it.
+  - The file holds:
+    - the `(Sync)` sequence, plus a separate `promos (Sync)` sequence for the promo takes;
+    - `<ep>_mc`, whose angles `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly) each hold that camera's clips;
+    - the main sequence `classical_et_cetera_<ep>`, with `_mc` on V1 and mics 1–4 on A1–A4.
+  - Everything from the old `Documents\PodAssembler` folder now lives in `Documents\PodGrip`.
+- **Import tests (files in `Documents\PodGrip\import_tests\`):**
+  - Nests import fine, and so does a multicam whose angles are camera clips. David switched angles on it and `_5219` came through.
+  - A multicam whose angles are nested sequences fails the whole import. So `assemble.js` builds the angles from camera clips, and there are no nest sequences (David's choice).
+- **Promos:** the short takes besides the episode are Instagram promo recordings. They're synced, but kept out of the episode and the multicam (`sync.split`; see PROJECT.md milestone 1).
+- **Open, and the next thing to fix: audio channels.**
+  - In David's test imports, A2–A5 played Martin (channel 1) and drew no waveform.
+  - The very first sync import drew distinct waveforms on A1–A4.
+  - Suspect: the tests were imported into a project that already held those WAVs, and Premiere reused their master clips. Check with the regenerated ep 243 assembly XML, imported into a **brand-new, empty project**.
+  - If A2 is still Martin there, the fix is in `micTracks` / the WAV `<file>` in `engine/xmeml.js`.
+  - Fallback: David's current routine of re-bringing the audio in from `sync_sound`.
 
 ## Reminders
 - The M: drive is read-only. Never write to it.

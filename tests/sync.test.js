@@ -49,6 +49,30 @@ test("sync: a gap between F6 split files is reported", () => {
   assert.ok(p.warnings.some((w) => /_0002\.WAV starts 4\.17 s from the end/.test(w)), p.warnings.join("; "));
 });
 
+test("split: the longest take is the episode; the short takes are promos, laid out on their own", () => {
+  const { episode, promos } = S.split(ep243(), { date: "261012" });
+  const names = (p) => p.video.flatMap((t) => t.clips).concat(p.wavs).map((c) => c.name).sort();
+  assert.deepEqual(names(episode), ["20261012_A7S3-3_5218.MP4", "20261012_A7S3_1_5524.MP4", "261012_001_0001.WAV", "261012_001_0002.WAV"]);
+  assert.deepEqual(names(promos), ["20261012_A7S3-3_5219.MP4", "261012_002.WAV"]);
+  assert.equal(promos.wavs[0].start, 0);
+  assert.equal(promos.video[0].clips[0].start - promos.wavs[0].start, 82, "the promo camera keeps its sync to the promo audio");
+  assert.equal(episode.takes.length, 1);
+  assert.deepEqual(episode.warnings, []);
+});
+
+test("split: one take means no promos; a long second take is flagged", () => {
+  assert.equal(S.split([wav("261012_001.WAV", tc(9, 0, 0), 50000)]).promos, null);
+  const { warnings } = S.split([wav("260518_001.WAV", tc(9, 0, 0), 71000, { date: "260518" }), wav("260518_002.WAV", tc(10, 0, 0), 16800, { date: "260518" })]).episode;
+  assert.ok(warnings.some((w) => /take 2 \(11\.7 min\) is long for a promo/.test(w)), warnings.join("; "));
+});
+
+test("xmeml: the promos get their own synced sequence in the sync XML", () => {
+  const { episode, promos } = S.split(ep243(), { date: "261012" });
+  const seqs = X.kids(X.child(X.parse(XM.write(episode, { name: "E", promos: { plan: promos, name: "P" } })), "xmeml"), "sequence");
+  assert.deepEqual(seqs.map((s) => X.textOf(s, "name")), ["E", "P"]);
+  assert.deepEqual(X.all(seqs[1], "clipitem").map((c) => X.textOf(c, "name"))[0], "20261012_A7S3-3_5219.MP4");
+});
+
 test("xmeml: writes a sequence Premiere can read: tracks, files once, linked audio channels", () => {
   const p = S.plan(ep243(), { date: "261012" });
   const xml = XM.write(p, { name: "classical_et_cetera_243 (Sync)", markers: [{ frame: 10, name: "Check" }] });

@@ -13,7 +13,8 @@
  * plan(clips, opts) where clips are
  *   { kind: "camera", name, path, body, lens, tc (frames, null = no LTC), frames (length) }
  *   { kind: "wav", name, path, date (yymmdd), take, part, tc, frames, channels }   (take null = not an F6 file)
- * opts: { date: the episode day (yymmdd), gapFrames between takes (2 s) }
+ * opts: { date: the episode day (yymmdd), gapFrames between takes (2 s), expectWide (true: warn if no 24-70) }
+ * split(clips, opts) separates the episode take from the short promo takes, each laid out with plan().
  * Positions are in timeline frames at 23.976 (timecode frames at 24 nominal map 1:1 onto them).
  */
 (function (root, factory) {
@@ -111,7 +112,7 @@
       return (b.synced > 0) - (a.synced > 0) || (b.wide ? 1 : 0) - (a.wide ? 1 : 0) || b.synced - a.synced || (a.body < b.body ? -1 : 1);
     });
     var wides = tracks.filter(function (t) { return t.wide && t.synced; });
-    if (tracks.length && !tracks[0].wide) warnings.push("no camera has the 24-70 lens: couldn't tell which is the wide, so V1 is " + tracks[0].body);
+    if (opts.expectWide !== false && tracks.length && !tracks[0].wide) warnings.push("no camera has the 24-70 lens: couldn't tell which is the wide, so V1 is " + tracks[0].body);
     if (wides.length > 1) warnings.push("more than one camera has the 24-70 lens; V1 is the one with the most footage (" + wides[0].body + ")");
 
     var allWavs = takeList.reduce(function (a, t) { return a.concat(t.wavs); }, []);
@@ -120,5 +121,31 @@
     return { video: tracks, wavs: allWavs, channels: channels, takes: takeList, durationFrames: duration, warnings: warnings };
   }
 
-  return { FPS: FPS, plan: plan, delta: delta, isWide: isWide };
+  /**
+   * split(clips, opts) -> { episode: plan, promos: plan or null }. The episode is the day's longest F6 take; every
+   * other take is a short promo recording (made for Instagram around the show), laid out on its own with its
+   * cameras. Across the 2026 episodes the episode take runs 32–71 min and the promos 0.3–4 min, so a "promo"
+   * over 5 min is flagged for a person to check. Clips with no timecode stay with the episode, where they're flagged.
+   */
+  var PROMO_CHECK_FRAMES = 5 * 60 * FPS;
+  function split(clips, opts) {
+    var all = plan(clips, opts);
+    if (all.takes.length < 2) return { episode: all, promos: null };
+    var len = function (t) { return t.wavs.reduce(function (s, w) { return s + w.frames; }, 0); };
+    var main = all.takes.slice().sort(function (a, b) { return len(b) - len(a); })[0];
+    var promoClips = [], notes = [];
+    all.takes.forEach(function (t) {
+      if (t === main) return;
+      promoClips = promoClips.concat(t.wavs, t.cams);
+      if (len(t) > PROMO_CHECK_FRAMES)
+        notes.push("take " + t.take + " (" + (len(t) / FPS * 1.001 / 60).toFixed(1) + " min) is long for a promo: check it isn't part of the episode");
+    });
+    var episode = plan(clips.filter(function (c) { return promoClips.indexOf(c) < 0; }), opts);
+    // Promos are often shot on the dolly alone, so a missing wide isn't worth a warning there.
+    var promos = plan(promoClips, Object.assign({}, opts, { expectWide: false }));
+    episode.warnings = episode.warnings.concat(notes, promos.warnings.map(function (w) { return "promos: " + w; }));
+    return { episode: episode, promos: promos };
+  }
+
+  return { FPS: FPS, plan: plan, split: split, delta: delta, isWide: isWide };
 });

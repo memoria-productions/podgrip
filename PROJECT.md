@@ -331,11 +331,16 @@ Existing data to start from (on David's PC):
    - **Still to do:** run it on the next shoot alongside Resolve.
 1. **Prototype the Premiere side (1 week).** Generate an FCP7 XML for ep 243 with the stacked camera cut, mics, graphics, music and markers, and import it. Decide XML vs ExtendScript vs UXP, and whether the multicam step is needed.
    - **David's choice, 2026-10-30:** a real, re-switchable **nested multicam** (question 1 in section 10). It's its own step of the plugin, separate from sync: `podgrip assemble <episode folder>` (`engine/assemble.js`).
-   - **First prototype, 2026-10-30:** `podgrip assemble` writes `<WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml`.
-     - It holds the `(Sync)` sequence, the nests `<ep>_b_cam` (the wide) and `<ep>_a_cam` (the dolly), and the `<ep>_mc` multiclip with the wide as angle 1.
+   - **What Premiere 2025 takes from XML (David's import tests on ep 243, 2026-10-30):**
+     - Nested sequences import fine, on their own and stacked inside another sequence.
+     - A multiclip whose angles are camera clips imports as a real, switchable multicam (`[MC1]`).
+     - A multiclip whose angles are nested sequences makes the whole import fail ("may be damaged or contain outdated elements").
+   - **So `podgrip assemble` writes** `<WORK_DIR>\assemble\classical_et_cetera_<ep>_assembly.xml`:
+     - the `(Sync)` sequence, and the promos' own `promos (Sync)` sequence;
+     - `<ep>_mc`, a multiclip whose angles hold each camera's clips at their synced positions, which does the job of David's nests. The angles take his nest names: `<ep>_b_cam` is the wide (angle 1, as in every past edit) and `<ep>_a_cam` the dolly.
      - The main sequence `classical_et_cetera_<ep>` has `_mc` on V1 and mics 1–4 on A1–A4.
-     - The nests are named the way David names them: in every past edit, `b_cam` is the wide.
-     - **Waiting on David's import** to see whether Premiere keeps `_mc` as a switchable multicam.
+   - **Promo takes are kept apart** (`sync.split`). The episode is the day's longest F6 take. The other takes are Instagram promo recordings: 0.3–4 min in every 2026 episode, except ep 222's 11.7-min take 2. A "promo" over 5 min is flagged for checking.
+   - **Open: audio channels.** In David's later test imports, A2–A5 played channel 1 (Martin) instead of their own channel. The first sync import, into a fresh project, drew distinct waveforms. Next step: re-check in a brand-new empty project.
 2. **Offline planner.** Steps 1–8 of section 5 as a Node CLI (`podgrip plan <episode folder>`), producing `<ep>.assembly.json`, plus a replay harness over the 38 episodes.
 3. **Graphics and outro placement.** Deterministic rules from section 3, checked against all 38 episodes.
 4. **Teaser picker.** Ranking, scored by how often David's actual teaser lands in the top 3.

@@ -6,6 +6,7 @@
  *   A1, A2…  one F6 channel per track (A1–A4 = the four mics, as in the finished edit), every channel of a WAV
  *            linked so they move together
  *   markers  for anything placed without timecode
+ * The promo takes (short recordings for Instagram) get a sequence of their own, kept apart from the episode.
  * Doc / open / syncSequence are shared with engine/assemble.js, which builds the multicam chain on this sequence.
  * 23.976 fps (timebase 24, NTSC), 1920x1080, 48 kHz.
  */
@@ -169,13 +170,14 @@
 
   /**
    * write(plan, opts) -> XML string of the synced sequence.  opts.name: sequence name;  opts.markers;
-   * opts.width/height (1920x1080).
+   * opts.width/height (1920x1080);  opts.promos: { plan, name, markers } for the promo takes' own sequence.
    */
   function write(plan, opts) {
     opts = opts || {};
     var doc = Doc(opts);
     open(doc);
     syncSequence(doc, plan, opts, "sequence-1");
+    if (opts.promos) syncSequence(doc, opts.promos.plan, opts.promos, "sequence-promos");
     doc.line(0, "</xmeml>");
     return doc.text();
   }
