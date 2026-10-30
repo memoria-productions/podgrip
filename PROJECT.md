@@ -327,7 +327,8 @@ Existing data to start from (on David's PC):
      - two cameras with the same body name (told apart by lens);
      - F6 files with a big PAD chunk or a zero data size;
      - clips without timecode (placed at the end with a marker).
-   - **Still to do:** import a generated XML into Premiere and check it, then run it on the next shoot alongside Resolve.
+   - **Checked in Premiere 2025, 2026-10-30:** David imported the ep 243 XML. The footage and audio are synced perfectly and nothing came in offline.
+   - **Still to do:** run it on the next shoot alongside Resolve.
 1. **Prototype the Premiere side (1 week).** Generate an FCP7 XML for ep 243 with the stacked camera cut, mics, graphics, music and markers, and import it. Decide XML vs ExtendScript vs UXP, and whether the multicam step is needed.
 2. **Offline planner.** Steps 1–8 of section 5 as a Node CLI (`podassembler plan <episode folder>`), producing `<ep>.assembly.json`, plus a replay harness over the 38 episodes.
 3. **Graphics and outro placement.** Deterministic rules from section 3, checked against all 38 episodes.
