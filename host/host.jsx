@@ -8,6 +8,8 @@
  *   PG.findBin(name)                  is there already a bin of that name at the top of the project? (and what's in it)
  *   PG.importXml(file, binName)       import an FCP7 XML into a top-level bin, with no dialog
  *   PG.placeMulticam(mc, program)     put <ep>_mc on V1 of the program sequence at the start, video only, mics untouched
+ *   PG.applyLut(seqs, lut, sat)       Lumetri Color with the LUT as its Creative Look (and Creative Saturation) on every clip of those sequences
+ *   PG.applyLutToSelection(lut, sat)  the same, on the clips selected in the open sequence
  */
 
 #target premierepro
@@ -141,5 +143,125 @@ var PG = (function () {
     return ok({ placedAt: v1.clips[0].start.seconds, removedAudio: removed });
   }
 
-  return { ping: ping, renameTemplateSequences: renameTemplateSequences, findBin: findBin, importXml: importXml, placeMulticam: placeMulticam };
+  // ------------------------------------------------------------ the show LUT
+  // Premiere's scripting has no way to add an effect, so Lumetri Color goes on through the QE DOM (unofficial, but
+  // what every panel uses). Its settings are then reached through the clip's components as usual.
+  var LUMETRI = "AE.ADBE Lumetri";
+
+  function qeSequence(name) {
+    app.enableQE();
+    var i;
+    for (i = 0; i < qe.project.numSequences; i++) { var s = qe.project.getSequenceAt(i); if (s.name === name) return s; }
+    return null;
+  }
+
+  /** The QE item for the n-th clip on a QE track: QE also lists the gaps between clips, as "Empty". */
+  function qeClip(qeTrack, n) {
+    var i, k = -1;
+    for (i = 0; i < qeTrack.numItems; i++) {
+      var it = qeTrack.getItemAt(i);
+      if (it.type === "Empty") continue;
+      if (++k === n) return it;
+    }
+    return null;
+  }
+
+  function lumetriOf(clip) {
+    var i;
+    for (i = 0; i < clip.components.numItems; i++) {
+      var c = clip.components[i];
+      if (c.matchName === LUMETRI || c.displayName === "Lumetri Color") return c;
+    }
+    return null;
+  }
+
+  /** Lumetri's Creative settings: its Look, and the Creative Saturation (the first Saturation after the Look; Basic Correction has one before it). */
+  function creative(comp) {
+    var p = comp.properties, i, look = -1, sat = null, names = [];
+    for (i = 0; i < p.numItems; i++) {
+      names.push(p[i].displayName);
+      if (look < 0 && p[i].displayName === "Look") look = i;
+      else if (look >= 0 && !sat && p[i].displayName === "Saturation") sat = p[i];
+    }
+    return { look: look >= 0 ? p[look] : null, saturation: sat, names: names };
+  }
+
+  /** Lumetri Color on one clip, with the LUT as its Creative Look (and the saturation, if given). Returns what it did. */
+  function lutOnClip(seq, qeSeq, t, i, lut, saturation) {
+    var clip = seq.videoTracks[t].clips[i], comp = lumetriOf(clip), added = false;
+    if (!comp) {
+      var q = qeSeq && qeClip(qeSeq.getVideoTrackAt(t), i);
+      if (!q) throw new Error("couldn't reach it through Premiere's QE scripting");
+      q.addVideoEffect(qe.project.getVideoEffectByName("Lumetri Color"));
+      clip = seq.videoTracks[t].clips[i];
+      comp = lumetriOf(clip);
+      if (!comp) throw new Error("Premiere didn't add Lumetri Color");
+      added = true;
+    }
+    var cr = creative(comp);
+    if (!cr.look) throw new Error("its Lumetri Color has no Look setting the script can reach (it has: " + cr.names.join(", ") + ")");
+    var had = String(cr.look.getValue()) === lut;
+    if (!had) cr.look.setValue(lut, true);
+    if (saturation !== null && saturation !== undefined && cr.saturation && cr.saturation.getValue() !== saturation) cr.saturation.setValue(saturation, true);
+    return {
+      clip: clip.name, added: added, already: had,
+      confirmed: String(cr.look.getValue()) === lut,   // Premiere may hand back the LUT as something other than its path
+      saturation: cr.saturation ? cr.saturation.getValue() : null
+    };
+  }
+
+  /** Run lutOnClip over a list of [t, i] in a sequence, collecting results and problems instead of stopping. */
+  function lutOnClips(seq, qeSeq, at, lut, saturation, done, problems) {
+    var k;
+    for (k = 0; k < at.length; k++) {
+      var name = seq.videoTracks[at[k][0]].clips[at[k][1]].name;
+      try { var r = lutOnClip(seq, qeSeq, at[k][0], at[k][1], lut, saturation); r.sequence = seq.name; done.push(r); }
+      catch (e) { problems.push(seq.name + " › " + name + ": " + (e.message || e)); }
+    }
+  }
+
+  /** The show LUT on every clip of the named sequences (the camera nests). Sequences that aren't there are skipped. */
+  function applyLut(seqNames, lut, saturation) {
+    if (!app.project) return fail("No project is open.");
+    if (!new File(lut).exists) return fail("The LUT isn't there: " + lut);
+    var done = [], problems = [], missing = [], n, s, t, i, seqs = app.project.sequences;
+    for (n = 0; n < seqNames.length; n++) {
+      var found = false;
+      for (s = 0; s < seqs.numSequences; s++) {
+        var seq = seqs[s];
+        if (seq.name !== seqNames[n]) continue;
+        found = true;
+        var at = [];
+        for (t = 0; t < seq.videoTracks.numTracks; t++) for (i = 0; i < seq.videoTracks[t].clips.numItems; i++) at.push([t, i]);
+        lutOnClips(seq, qeSequence(seq.name), at, lut, saturation, done, problems);
+      }
+      if (!found) missing.push(seqNames[n]);
+    }
+    return ok({ done: done, problems: problems, missing: missing });
+  }
+
+  /** The show LUT on the video clips selected in the open sequence. */
+  function applyLutToSelection(lut, saturation) {
+    if (!app.project) return fail("No project is open.");
+    if (!new File(lut).exists) return fail("The LUT isn't there: " + lut);
+    var seq = app.project.activeSequence;
+    if (!seq) return fail("Open a sequence and select the clips first.");
+    var sel = seq.getSelection(), at = [], k, t, i;
+    for (k = 0; k < sel.length; k++) {
+      for (t = 0; t < seq.videoTracks.numTracks; t++) {
+        var clips = seq.videoTracks[t].clips;
+        for (i = 0; i < clips.numItems; i++) if (clips[i].nodeId === sel[k].nodeId) at.push([t, i]);
+      }
+    }
+    if (!at.length) return fail("No video clips are selected in " + seq.name + ".");
+    app.enableQE();
+    var done = [], problems = [];
+    lutOnClips(seq, qe.project.getActiveSequence(), at, lut, saturation, done, problems);
+    return ok({ done: done, problems: problems, missing: [] });
+  }
+
+  return {
+    ping: ping, renameTemplateSequences: renameTemplateSequences, findBin: findBin, importXml: importXml, placeMulticam: placeMulticam,
+    applyLut: applyLut, applyLutToSelection: applyLutToSelection
+  };
 })();

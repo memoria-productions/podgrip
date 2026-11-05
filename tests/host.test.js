@@ -149,3 +149,104 @@ test("host: no multicam yet, or something already on V1, stops before touching a
   assert.match(busy.call("placeMulticam", ...PLACE).error, /already has something on V1/);
   assert.equal(busy.program.videoTracks[0].clips.length, 1);
 });
+
+/**
+ * Premiere with the camera nests and QE. Each clip's Lumetri Color, once added, lists Basic Correction's Saturation
+ * before its Look and the Creative Saturation after it, as Premiere does. `lookEcho: false` makes the Look hand back
+ * something other than the path (Premiere may keep the LUT as data).
+ */
+function withNests(opts) {
+  opts = opts || {};
+  const list = (items) => { const l = items.slice(); Object.defineProperty(l, "numItems", { get: () => l.length }); return l; };
+  const prop = (name, v) => {
+    const p = { displayName: name, value: v, sets: 0 };
+    p.getValue = () => p.value;
+    p.setValue = (x) => { p.sets++; p.value = name === "Look" && opts.lookEcho === false ? "<blob>" : x; };
+    return p;
+  };
+  const lumetri = () => ({ matchName: "AE.ADBE Lumetri", displayName: "Lumetri Color", properties: list(opts.noLook ? [prop("Saturation", 100)] :
+    [prop("Exposure", 0), prop("Saturation", 100), prop("Look", ""), prop("Intensity", 100), prop("Saturation", 100), prop("Vibrance", 0)]) });
+  const clip = (name, id) => ({ name, nodeId: id, components: list([{ matchName: "AE.ADBE Opacity", displayName: "Opacity", properties: list([]) }]) });
+  const nest = (name, clips) => ({ name, videoTracks: Object.assign([{ clips: list(clips) }], { numTracks: 1 }) });
+  const b = nest("246_b_cam", [clip("20261030_A7S3_1_5539.MP4", "n1")]);
+  const a = nest("246_a_cam", [clip("20261030_A7S3-3_5390.MP4", "n2"), clip("20261030_A7S3-3_5391.MP4", "n3")]);
+  if (opts.hasLumetri) a.videoTracks[0].clips[0].components.push(lumetri());
+  a.getSelection = () => (opts.selection || []).map((id) => ({ nodeId: id }));
+  const seqs = [b, a], added = [];
+  // QE lists the gap before each clip as "Empty"; Lumetri added through QE shows up in the clip's components.
+  const qeSeq = (s) => ({
+    name: s.name,
+    getVideoTrackAt: (t) => {
+      const items = [];
+      s.videoTracks[t].clips.forEach((c) => {
+        items.push({ type: "Empty" });
+        items.push({ type: "Clip", name: c.name, addVideoEffect: () => { added.push(c.name); if (!opts.qeFails) c.components.push(lumetri()); } });
+      });
+      return { numItems: items.length, getItemAt: (i) => items[i] };
+    }
+  });
+  const lut = "M:\\show\\#global\\media\\generated\\color\\2024_slog3_set_custom.cube";
+  const ctx = {
+    app: { version: "25.2.0", enableQE: () => {}, project: { sequences: Object.assign(seqs.slice(), { numSequences: seqs.length }), activeSequence: a } },
+    qe: { project: { numSequences: seqs.length, getSequenceAt: (i) => qeSeq(seqs[i]), getActiveSequence: () => qeSeq(a), getVideoEffectByName: (n) => ({ name: n }) } },
+    File: function (p) { this.exists = p === lut; }
+  };
+  vm.createContext(ctx);
+  vm.runInContext(SRC, ctx);
+  const call = (fn, ...args) => JSON.parse(vm.runInContext("PG." + fn + "(" + args.map((x) => JSON.stringify(x)).join(",") + ")", ctx));
+  const fx = (seq, i) => seq.videoTracks[0].clips[i].components.find((c) => c.matchName === "AE.ADBE Lumetri");
+  return { call, a, b, added, lut, fx };
+}
+
+test("host: the show LUT goes on every camera in the nests, as the Creative Look, with the Creative saturation", () => {
+  const P = withNests();
+  const r = P.call("applyLut", ["246_b_cam", "246_a_cam"], P.lut, 90);
+  assert.equal(r.ok, true, r.error);
+  assert.deepEqual(r.problems, []);
+  assert.equal(r.done.length, 3);
+  assert.ok(r.done.every((d) => d.added && d.confirmed && d.saturation === 90));
+  assert.deepEqual(P.added, ["20261030_A7S3_1_5539.MP4", "20261030_A7S3-3_5390.MP4", "20261030_A7S3-3_5391.MP4"], "QE's gaps are skipped");
+  const p = P.fx(P.a, 1).properties;
+  assert.equal(p[2].value, P.lut);
+  assert.equal(p[1].value, 100, "Basic Correction's saturation isn't touched");
+  assert.equal(p[4].value, 90, "Creative saturation");
+});
+
+test("host: a clip that already has Lumetri Color keeps it, and running again changes nothing", () => {
+  const P = withNests({ hasLumetri: true });
+  P.call("applyLut", ["246_a_cam"], P.lut, 90);
+  assert.deepEqual(P.added, ["20261030_A7S3-3_5391.MP4"], "no second Lumetri on the clip that had one");
+  const again = P.call("applyLut", ["246_a_cam"], P.lut, 90);
+  assert.ok(again.done.every((d) => d.already));
+  assert.equal(P.fx(P.a, 0).properties[2].sets, 1);
+  assert.equal(P.a.videoTracks[0].clips[0].components.filter((c) => c.matchName === "AE.ADBE Lumetri").length, 1);
+});
+
+test("host: an empty saturation leaves it alone", () => {
+  const P = withNests();
+  P.call("applyLut", ["246_b_cam"], P.lut, null);
+  assert.equal(P.fx(P.b, 0).properties[4].value, 100);
+});
+
+test("host: LUT problems are reported clip by clip, not as a stop", () => {
+  const E = withNests({ lookEcho: false });
+  assert.equal(E.call("applyLut", ["246_b_cam"], E.lut, 90).done[0].confirmed, false);
+  const P = withNests({ qeFails: true });
+  const r = P.call("applyLut", ["246_b_cam", "246_x_cam"], P.lut, 90);
+  assert.equal(r.ok, true);
+  assert.match(r.problems[0], /246_b_cam › 20261030_A7S3_1_5539.MP4: Premiere didn't add Lumetri Color/);
+  assert.deepEqual(r.missing, ["246_x_cam"]);
+  const N = withNests({ noLook: true, hasLumetri: true });
+  assert.match(N.call("applyLut", ["246_a_cam"], N.lut, 90).problems[0], /no Look setting.*Saturation/);
+  assert.match(P.call("applyLut", ["246_b_cam"], "M:\\nope.cube", 90).error, /LUT isn't there/);
+});
+
+test("host: Apply LUT to selected clips does only the selected ones", () => {
+  const P = withNests({ selection: ["n3"] });
+  const r = P.call("applyLutToSelection", P.lut, 90);
+  assert.equal(r.ok, true, r.error);
+  assert.deepEqual(r.done.map((d) => d.clip), ["20261030_A7S3-3_5391.MP4"]);
+  assert.deepEqual(P.added, ["20261030_A7S3-3_5391.MP4"]);
+  const none = withNests();
+  assert.match(none.call("applyLutToSelection", none.lut, 90).error, /No video clips are selected/);
+});

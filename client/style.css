@@ -35,7 +35,7 @@ p { margin: 0; }
 .status.warn { color: var(--warn); }
 .status.err { color: var(--err); }
 .field { display: block; margin: 8px 0 4px; color: var(--muted); }
-.field input { display: block; width: 100%; margin-top: 3px; background: #1a1a1a; color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 5px 6px; font: inherit; }
+.field input, .field select { display: block; width: 100%; margin-top: 3px; background: #1a1a1a; color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 5px 6px; font: inherit; }
 .check { display: block; margin: 4px 0; }
 .row { display: flex; gap: 6px; margin: 6px 0; }
 .row .btn { flex: 1; }

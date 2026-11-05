@@ -46,10 +46,20 @@ It's distilled from PodDirector (`#poddirector`), which does the camera cutting 
 | `generated\mograph\<season asset package>\` | Intro sting, outro, podcast bumper. Packages: `Winter 2024 Asset Package`, `2024_fall_asset_package`, `2025_spring_asset_package`, `2025_summer_asset_package`. The files are `render_intro.mov`, `cetc_intro_<season>_25.mov`, `render_outro.mov` / `cetc_outro_<season>_25.mov`, and `render_memoria_press_podcast_bumper.mov` / `cetc_pod_bumper_<season>_25.mov`. |
 | `generated\mixdown\` | `20240214_jessica_audio_outro.WAV` and `memoria_press_podcast_network_outro.wav`. |
 | `generated\graphics\` | `podcast@memoriapress_v2.mov`, `MP-Logo--VERTICAL_1920x1080_White.png`. |
+| `generated\color\` | LUTs: `2024_slog3_set_custom.cube` (the show LUT), `cetc_showlut_v2.cube`, `CinemaGamut_CanonLog3-to-Canon709_65_Ver.1.0.cube`. |
 | `sourced\music\` | `audioblocks-moments-like-this_rEH6PvDM8.wav` (open and close bed) and `guitar-strum-open.wav`. |
 | `sourced\sfx\` | `Mountain Audio - Beep.wav` (rare: a bleep). |
 
 `M:\Video\#Assets\Graphics\Memoria Press\Memoria YouTube Notifications\Finals\` holds `MP Final Comp.mov` and `YT Final Comp.mov`.
+
+**The show LUT (read from the projects of eps 243–246, 2026-11-05).** Every camera gets `2024_slog3_set_custom.cube` as Lumetri's Creative Look, with Creative Saturation at 90 (David). Where it sits has varied:
+- ep 243: an adjustment layer in `243_a_cam` only;
+- ep 244: source effects on the master clips;
+- ep 245: none found on the cameras;
+- ep 246: on each camera clip inside both nests;
+- every episode: the 1080x1920 adjustment layer of the 9x16 promo.
+
+The panel now does it ep 246's way, during Begin episode assembly. The LUT and its folder are panel settings.
 
 **David's Premiere template:** `...\classical_et_cetera\#global\project_files\premiere_pro\classical_et_ceterea_###_25.2.prproj`. It holds his audio processing and the templated media (sequences `classical_et_cetera_###` and `classical_et_cetera_###_promo_9x16`). New episodes start from a copy of it, so PodGrip's XML is imported into that copy. Never write to the template itself.
 

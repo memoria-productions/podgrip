@@ -104,7 +104,19 @@ Fix whatever goes wrong in `engine/xmeml.js`, then add a test, run `npm test` an
   - whether `importFiles` puts the XML's sequences straight in the bin or in a sub-bin (both are handled);
   - how long the panel pauses while reading timecode (about 5 s per camera clip, synchronous).
 
+## The show LUT (added 2026-11-05, not yet run in Premiere)
+- **Panel:** a Show LUT section. It remembers the LUT folder and file (default `#global\media\generated\color\2024_slog3_set_custom.cube`) and the Creative saturation (default 90).
+- **Begin episode assembly**, step 5: `PG.applyLut` on the two nests.
+- **Apply LUT to selected clips:** `PG.applyLutToSelection`.
+- **How:** Lumetri Color goes on through QE (`addVideoEffect`). Then the component property named "Look" is set to the LUT's path, and the first "Saturation" after it (Creative's, not Basic Correction's) to the saturation. A clip that already has Lumetri keeps it.
+- **Tested against a fake Premiere only.** Unknowns for the first run:
+  - Does QE's "Lumetri Color" name match?
+  - Is Lumetri's property really called "Look"? If not, the panel logs the names it found.
+  - Does `getValue()` hand back the path, so the panel can confirm it took? If not, it asks David to check each clip.
+  - Does a Look set this way show in the Program monitor (one forum report says the thumbnail updated but the player didn't)?
+
 ## Next
+- David runs the Show LUT step on a fresh episode or a copy (see above).
 - David installs the panel and runs it on a fresh episode (or a copy of ep 243's folder layout).
 - Then:
   - merge `feature/assemble-multicam` into `main`;

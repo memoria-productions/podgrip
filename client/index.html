@@ -32,6 +32,7 @@
       <li data-step="sync">Read the timecode and sync the footage and audio</li>
       <li data-step="write">Write the assembly XML next to the project</li>
       <li data-step="import">Import it into a PodGrip bin</li>
+      <li data-step="lut">Put the show LUT on the cameras in the nests</li>
     </ol>
     <div id="status" class="status"></div>
   </section>
@@ -45,6 +46,24 @@
     <button id="btnPlace" class="btn wide" disabled>Place multicam</button>
     <p class="muted" id="placeHelp">Once you've made the multicam from the nests: puts it on V1 of the (Program) sequence at the start, video only. The mics on A1–A4 aren't touched.</p>
     <div id="placeStatus" class="status"></div>
+  </section>
+
+  <section class="card">
+    <h2>Show LUT</h2>
+    <label class="field">LUT
+      <select id="lutName"></select>
+    </label>
+    <div class="row">
+      <button id="btnLutChoose" class="btn ghost small" title="Pick a LUT file; PodGrip remembers its folder">Choose LUT…</button>
+    </div>
+    <div class="muted" id="lutFolder"></div>
+    <label class="field">Creative saturation
+      <input id="lutSat" placeholder="Empty: leave it as it is" />
+    </label>
+    <label class="check"><input type="checkbox" id="lutOnBegin" checked /> Put it on the cameras during Begin episode assembly</label>
+    <button id="btnLut" class="btn wide">Apply LUT to selected clips</button>
+    <p class="muted">Adds Lumetri Color to each selected clip (or uses the one it has) and sets Creative › Look to this LUT, and the Creative saturation.</p>
+    <div id="lutStatus" class="status"></div>
   </section>
 
   <details class="card" id="updatesBox">

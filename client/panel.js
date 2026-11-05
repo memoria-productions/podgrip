@@ -5,6 +5,7 @@
  *   2. reads the timecode on the footage and the F6 WAVs and syncs them (lib/assembly.js, in Node)
  *   3. writes classical_et_cetera_<ep>_assembly.xml next to the project
  *   4. imports it into a PodGrip bin with no dialog (host: PG.importXml)
+ *   5. puts the show LUT on the cameras in the nests, if that's ticked (host: PG.applyLut)
  * and then says the one step left: make <ep>_mc from the nests.
  */
 (function () {
@@ -15,7 +16,7 @@
   var hasNode = typeof require === "function" && typeof process !== "undefined";
   var path = hasNode ? require("path") : null;
   var VERSION = "?", BIN = "PodGrip";
-  var state = { busy: false, extRoot: null, LA: null, E: null, U: null, update: null, project: null, dir: null, info: null };
+  var state = { busy: false, extRoot: null, LA: null, E: null, U: null, LUT: null, update: null, project: null, dir: null, info: null };
 
   function $(id) { return document.getElementById(id); }
   function log(msg) { var el = $("log"); el.textContent += msg + "\n"; el.scrollTop = el.scrollHeight; }
@@ -24,7 +25,7 @@
     var items = $("steps").querySelectorAll("li");
     for (var i = 0; i < items.length; i++) if (items[i].getAttribute("data-step") === name) items[i].className = how || "";
   }
-  function resetSteps() { ["rename", "sync", "write", "import"].forEach(function (s) { step(s, ""); }); }
+  function resetSteps() { ["rename", "sync", "write", "import", "lut"].forEach(function (s) { step(s, ""); }); }
   /** Let the panel repaint before a step that blocks (reading timecode runs ffmpeg synchronously). */
   function paint() { return new Promise(function (r) { setTimeout(r, 40); }); }
 
@@ -73,6 +74,7 @@
       if (!state.dir) return showEpisode("This project isn't inside an episode folder named yyyymmdd_###_title. Save it in <episode>\\project_files\\premiere\\.");
       state.info = state.E.folderInfo(state.dir);
       $("btnPlace").disabled = false;
+      fillLuts();
       var m = state.E.listMedia(state.dir);
       showEpisode(null, [
         ["Episode", state.info.ep], ["Title", state.info.slug.replace(/_/g, " ")], ["Recorded", state.info.date],
@@ -122,6 +124,17 @@
     }).then(function (r) {
       log("imported into the " + BIN + " bin: " + r.items.join(", "));
       step("import", "done");
+      if (!$("lutOnBegin").checked) { log("show LUT: not ticked, so left off"); return; }
+      var lut = lutChoice();
+      if (lut.error) { prep.warnings.push(lut.error); step("lut", "failed"); return; }
+      step("lut", "doing");
+      // A LUT that doesn't go on is a warning, not a stop: the assembly itself is done.
+      return callHost("applyLut", [prep.names.nests, lut.file, lut.saturation]).then(function (r) {
+        var bad = lutReport(r);
+        step("lut", bad.length ? "failed" : "done");
+        prep.warnings = prep.warnings.concat(bad);
+      }, function (e) { step("lut", "failed"); prep.warnings.push("Show LUT: " + e.message); log("show LUT: " + e.message); });
+    }).then(function () {
       var n = prep.names, warn = prep.warnings.length ? "\n\nCheck these: " + prep.warnings.join("; ") : "";
       status("Assembled episode " + ep + ": " + [n.sync].concat(prep.promos ? [n.promos] : [], n.nests, [n.main]).join(", ") + " are in the " + BIN + " bin." + warn,
         prep.warnings.length ? "warn" : "ok");
@@ -155,6 +168,76 @@
       el.className = "status err"; el.textContent = e.message;
       log("place multicam: " + e.message);
     }).then(function () { state.busy = false; $("btnPlace").disabled = !state.info; });
+  }
+
+  // ------------------------------------------------------------ the show LUT
+  /** The remembered LUT folder (the show's #global\media\generated\color until David picks another), into the menu. */
+  function lutFolder() { return load("lutFolder", null) || (state.dir ? state.LUT.defaultFolder(state.dir) : ""); }
+
+  function fillLuts() {
+    var folder = lutFolder(), names = folder ? state.LUT.list(folder) : [], sel = $("lutName"), chosen = state.LUT.pick(names, load("lutName", null));
+    sel.textContent = "";
+    names.forEach(function (n) { var o = document.createElement("option"); o.value = o.textContent = n; sel.appendChild(o); });
+    if (!names.length) { var o = document.createElement("option"); o.value = ""; o.textContent = "(no LUTs found)"; sel.appendChild(o); }
+    sel.value = chosen || "";
+    $("lutFolder").textContent = folder ? "From " + folder : "Choose a LUT, or open an episode project to use the show's color folder.";
+  }
+
+  /** { file, saturation } for the host, or { error } in plain words. */
+  function lutChoice() {
+    var name = $("lutName").value, sat = state.LUT.saturation($("lutSat").value);
+    if (!name) return { error: "Show LUT: there's no LUT chosen. Pick one under Show LUT." };
+    if (sat !== null && isNaN(sat)) return { error: "Show LUT: the Creative saturation should be a number from 0 to 200 (or empty)." };
+    return { file: path.join(lutFolder(), name), saturation: sat };
+  }
+
+  /** Log what PG.applyLut did, and give back what David should check. */
+  function lutReport(r) {
+    var bad = [];
+    r.done.forEach(function (d) {
+      log("LUT on " + d.sequence + " › " + d.clip + ": " + (d.already ? "already had it" : d.added ? "added Lumetri Color" : "set the Look on its Lumetri Color") +
+        (d.saturation !== null ? ", saturation " + d.saturation : "") + (d.confirmed ? "" : " (Premiere didn't confirm the Look)"));
+      if (!d.confirmed) bad.push("Show LUT: check Lumetri › Creative › Look on " + d.clip + " in " + d.sequence);
+    });
+    r.missing.forEach(function (s) { bad.push("Show LUT: there's no sequence " + s); });
+    r.problems.forEach(function (p) { log("LUT problem: " + p); bad.push("Show LUT: " + p); });
+    if (!r.done.length && !r.problems.length && !r.missing.length) bad.push("Show LUT: there were no clips to put it on");
+    return bad;
+  }
+
+  function applySelected() {
+    if (state.busy) return;
+    var lut = lutChoice(), el = $("lutStatus");
+    if (lut.error) { el.className = "status err"; el.textContent = lut.error; return; }
+    state.busy = true; $("btnLut").disabled = true;
+    el.className = "status"; el.textContent = "Applying " + path.basename(lut.file) + "…";
+    callHost("applyLutToSelection", [lut.file, lut.saturation]).then(function (r) {
+      var bad = lutReport(r), n = r.done.length;
+      el.className = "status " + (bad.length ? "warn" : "ok");
+      el.textContent = path.basename(lut.file) + " is on " + n + " clip" + (n === 1 ? "" : "s") + "." + (bad.length ? "\n" + bad.join("\n") : "");
+    }).catch(function (e) {
+      el.className = "status err"; el.textContent = e.message;
+      log("apply LUT: " + e.message);
+    }).then(function () { state.busy = false; $("btnLut").disabled = false; });
+  }
+
+  function chooseLut() {
+    var r = window.cep && window.cep.fs.showOpenDialogEx(false, false, "Choose a LUT", lutFolder() || null, ["cube", "3dl", "look", "itx"]);
+    if (!r || r.err || !r.data || !r.data.length) return;
+    store("lutFolder", path.dirname(r.data[0]));
+    store("lutName", path.basename(r.data[0]));
+    fillLuts();
+  }
+
+  function wireLuts() {
+    $("lutSat").value = load("lutSat", String(state.LUT.SATURATION));
+    $("lutOnBegin").checked = load("lutOnBegin", true) !== false;
+    $("lutName").addEventListener("change", function () { store("lutName", this.value); });
+    $("lutSat").addEventListener("change", function () { store("lutSat", this.value.trim()); });
+    $("lutOnBegin").addEventListener("change", function () { store("lutOnBegin", this.checked); });
+    $("btnLutChoose").addEventListener("click", chooseLut);
+    $("btnLut").addEventListener("click", applySelected);
+    fillLuts();
   }
 
   // ------------------------------------------------------------ updates (as in PodCutter)
@@ -249,9 +332,11 @@
     state.LA = require(path.join(state.extRoot, "lib", "assembly.js"));
     state.E = require(path.join(state.extRoot, "lib", "episode.js"));
     state.U = require(path.join(state.extRoot, "lib", "updater.js"));
+    state.LUT = require(path.join(state.extRoot, "lib", "luts.js"));
     $("btnRefresh").addEventListener("click", function () { if (!state.busy) refresh(); });
     $("btnBegin").addEventListener("click", begin);
     $("btnPlace").addEventListener("click", place);
+    wireLuts();
     wireUpdates();
     refresh();
     checkUpdates(true);
