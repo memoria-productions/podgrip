@@ -1,6 +1,6 @@
 {
   "name": "podgrip",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Assembles a complete Classical et cetera episode in Premiere Pro from the shoot files: timecode sync, multicam, camera cut, graphics and outro.",
   "license": "MIT",
   "private": true,

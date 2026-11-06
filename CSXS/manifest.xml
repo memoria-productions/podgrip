@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="11.0" ExtensionBundleId="com.memoriapress.podgrip" ExtensionBundleVersion="0.3.0"
+<ExtensionManifest Version="11.0" ExtensionBundleId="com.memoriapress.podgrip" ExtensionBundleVersion="0.3.1"
                    ExtensionBundleName="PodGrip"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <ExtensionList>
-    <Extension Id="com.memoriapress.podgrip.panel" Version="0.3.0"/>
+    <Extension Id="com.memoriapress.podgrip.panel" Version="0.3.1"/>
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
