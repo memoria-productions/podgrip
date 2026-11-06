@@ -36,7 +36,7 @@ It's distilled from PodDirector (`#poddirector`), which does the camera cutting 
 | `media\captured\footage\` (sometimes `footage\theater\`) | Sony A7S III clips, `<yyyymmdd>_<body>_<nnnn>.MP4`. Bodies: `A7S3_1`, `A7S3_2`, `A7S3-3`. Each clip has a sidecar `<clip>M01.XML`. |
 | `media\captured\sync_sound\` | Zoom F6 poly WAVs, `<yymmdd>_<take>_000N.WAV`, split at 2 GB (`_0001`, `_0002`). Sometimes there's an `audio_test\` subfolder. |
 | `project_files\resolve\` | `classical_et_cetera_<ep>.xml`: the **synced** sequence exported from DaVinci Resolve as FCP7 XML (`xmeml` v5). There's one for every 2026 episode; ep 206 uses `peoject_files` (sic). |
-| `project_files\premiere\` | `classical_et_cetera_<ep>.prproj`, or `classical_et_ceterea_<ep>_25.2.prproj` from ep 230 on (the typo is real). Ep 240 is under `project_media\premiere`. |
+| `project_files\premiere\` | `classical_et_cetera_<ep>.prproj`, or `classical_et_ceterea_<ep>_25.2.prproj` for eps 230–246 (the typo is real). New episodes are `classical_et_cetera_<ep>_25.2.prproj`, from the renamed template. Ep 240 is under `project_media\premiere`. |
 
 ### Shared assets, `...\classical_et_cetera\#global\media\`
 
@@ -61,7 +61,7 @@ It's distilled from PodDirector (`#poddirector`), which does the camera cutting 
 
 The panel now does it ep 246's way, during Begin episode assembly. The LUT and its folder are panel settings.
 
-**David's Premiere template:** `...\classical_et_cetera\#global\project_files\premiere_pro\classical_et_ceterea_###_25.2.prproj`. It holds his audio processing and the templated media (sequences `classical_et_cetera_###` and `classical_et_cetera_###_promo_9x16`). New episodes start from a copy of it, so PodGrip's XML is imported into that copy. Never write to the template itself.
+**David's Premiere template:** `...\classical_et_cetera\#global\project_files\premiere_pro\classical_et_cetera_###_25.2.prproj` (spelled `ceterea` until David renamed it, 2026-11-06). It holds his audio processing and the templated media (sequences `classical_et_cetera_###` and `classical_et_cetera_###_promo_9x16`). New episodes start from a copy of it, so PodGrip's XML is imported into that copy. Never write to the template itself.
 
 ### Recording setup
 
@@ -369,6 +369,8 @@ Existing data to start from (on David's PC):
 5. **Panel.** A one-page flow (pick the episode folder → check people and cameras → Assemble → review list), using PodDirector's UI patterns and updater.
 6. **First real episode** assembled end to end, with David reviewing. Write his feedback into the rules, as was done for PodDirector.
 7. **Any podcast, not just this one (David, 2026-10-30; next after the panel's first run).**
+   - **Started 2026-11-06,** after Margin Notes ep 015 came out named `classical_et_cetera_015…`. The show's name now comes from the project file's name, the part before the episode number (David's choice): `margin_notes_015_25.2.prproj` → `margin_notes`. The CLI uses the show's folder, or `--show`. The LUT is remembered per show.
+     - The Classical et cetera template was spelled `classical_et_ceterea_###_25.2.prproj`, which would have named its episodes `classical_et_ceterea_<ep>…`. David renamed it to `classical_et_cetera_###_25.2.prproj` the same day.
    - Name the podcast being worked on, so the hard-coded `classical_et_cetera_…` names, the `###` template and the folder paths come from a show setting instead of a fixed structure for this one show.
    - Offer a **file storage tree template** for a new show: the episode folder `yyyymmdd_###_title` with `media\captured\footage`, `sync_sound`, `project_files\premiere`, and the shared `#global` assets.
    - Help new users store and find their podcast's data in a clean, organized way.

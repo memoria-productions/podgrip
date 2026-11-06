@@ -30,7 +30,8 @@ PodGrip is a Premiere Pro plugin (planned) that assembles a whole Classical et c
   - Channel 5 (and 6) is empty on purpose.
 - **Episode folders:**
   - They get renamed after projects and XMLs were made. Find files by name within the episode folder, not by stored path.
-  - Typos are real: `peoject_files`, `classical_et_ceterea_<ep>_25.2.prproj`.
+  - Typos are real in past episodes: `peoject_files`, `classical_et_ceterea_<ep>_25.2.prproj` (eps 230–246).
+  - The template is now spelled right: `#global\project_files\premiere_pro\classical_et_cetera_###_25.2.prproj` (David renamed it 2026-11-06). PodGrip names everything after the project file (`lib/assembly.js` `showFromProject`), so new episodes come out `classical_et_cetera_<ep>…`.
 - **The M: drive** is a network share. Read footage in place and never write to it. The one exception, agreed with David: the panel writes `classical_et_cetera_<ep>_assembly.xml` next to the episode project in `<episode>\project_files\premiere\`. Never write to the template project or to `media\`.
 - **The wide camera** is the 24-70 lens (Sony sidecar `<Lens modelName>`). Which body or angle is the wide changes from episode to episode.
 

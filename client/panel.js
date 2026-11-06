@@ -1,9 +1,9 @@
 /*
- * PodGrip panel controller. With David's episode project open (a renamed copy of his template, saved in
+ * PodGrip panel controller. With an episode project open (a renamed copy of the show's template, saved in
  * <episode>\project_files\premiere\), "Begin episode assembly":
  *   1. renames the template's ### sequences to the episode number (host: PG.renameTemplateSequences)
  *   2. reads the timecode on the footage and the F6 WAVs and syncs them (lib/assembly.js, in Node)
- *   3. writes classical_et_cetera_<ep>_assembly.xml next to the project
+ *   3. writes <show>_<ep>_assembly.xml next to the project (the show's name is the project file's, before the number)
  *   4. imports it into a PodGrip bin with no dialog (host: PG.importXml)
  *   5. puts the show LUT on the cameras in the nests, if that's ticked (host: PG.applyLut)
  * and then says the one step left: make <ep>_mc from the nests.
@@ -16,7 +16,7 @@
   var hasNode = typeof require === "function" && typeof process !== "undefined";
   var path = hasNode ? require("path") : null;
   var VERSION = "?", BIN = "PodGrip";
-  var state = { busy: false, extRoot: null, LA: null, E: null, U: null, LUT: null, update: null, project: null, dir: null, info: null };
+  var state = { busy: false, extRoot: null, LA: null, E: null, U: null, LUT: null, update: null, project: null, dir: null, info: null, show: null };
 
   function $(id) { return document.getElementById(id); }
   function log(msg) { var el = $("log"); el.textContent += msg + "\n"; el.scrollTop = el.scrollHeight; }
@@ -64,7 +64,7 @@
 
   /** Look at the open project: which episode folder it's in, and what's been copied into it. */
   function refresh() {
-    state.dir = state.info = null;
+    state.dir = state.info = state.show = null;
     $("btnBegin").disabled = true;
     $("btnPlace").disabled = true;
     return callHost("ping").then(function (r) {
@@ -73,11 +73,13 @@
       state.dir = state.LA.episodeDir(state.project);
       if (!state.dir) return showEpisode("This project isn't inside an episode folder named yyyymmdd_###_title. Save it in <episode>\\project_files\\premiere\\.");
       state.info = state.E.folderInfo(state.dir);
+      // Sequences and the XML are named after the show, read off the project file (margin_notes_015.prproj).
+      state.show = state.LA.showFromProject(state.project, state.info.ep);
       $("btnPlace").disabled = false;
       fillLuts();
       var m = state.E.listMedia(state.dir);
       showEpisode(null, [
-        ["Episode", state.info.ep], ["Title", state.info.slug.replace(/_/g, " ")], ["Recorded", state.info.date],
+        ["Show", state.show || "(none)"], ["Episode", state.info.ep], ["Title", state.info.slug.replace(/_/g, " ")], ["Recorded", state.info.date],
         ["Project", path.basename(state.project)], ["Cameras", m.cameras.length + " clip(s) in footage"], ["Audio", m.wavs.length + " WAV(s) in sync_sound"]
       ]);
       if (!m.cameras.length || !m.wavs.length) return status("Copy the footage into media\\captured\\footage and the F6 WAVs into media\\captured\\sync_sound, then press Refresh.", "warn");
@@ -106,7 +108,7 @@
       status("Reading the timecode on each clip. This takes about 5 s per camera clip; the panel may pause.");
       return paint();
     }).then(function () {
-      prep = state.LA.prepare(state.dir, state.LA.findFfmpeg(state.extRoot), { inTemplate: true, log: log });
+      prep = state.LA.prepare(state.dir, state.LA.findFfmpeg(state.extRoot), { inTemplate: true, show: state.show, log: log });
       var p = prep.plan;
       p.video.forEach(function (t, i) {
         log("  " + prep.names.nests[i] + ": " + t.body + (t.wide ? " (the wide, 24-70)" : "") + ", " + t.clips.map(function (c) { return c.name + (c.unsynced ? " NOT SYNCED" : ""); }).join(", "));
@@ -152,7 +154,7 @@
   }
 
   /** The multicam and the program sequence, by the names engine/assemble.js gives them in the template. */
-  function mcNames() { return { mc: state.info.ep + "_mc", main: "classical_et_cetera_" + state.info.ep + " (Program)" }; }
+  function mcNames() { return { mc: state.info.ep + "_mc", main: (state.show ? state.show + "_" : "") + state.info.ep + " (Program)" }; }
 
   function place() {
     if (state.busy || !state.info) return;
@@ -172,10 +174,12 @@
 
   // ------------------------------------------------------------ the show LUT
   /** The remembered LUT folder (the show's #global\media\generated\color until David picks another), into the menu. */
-  function lutFolder() { return load("lutFolder", null) || (state.dir ? state.LUT.defaultFolder(state.dir) : ""); }
+  /** The LUT is remembered per show: each show has its own color folder. */
+  function lutKey(k) { return k + (state.show ? "." + state.show : ""); }
+  function lutFolder() { return load(lutKey("lutFolder"), null) || (state.dir ? state.LUT.defaultFolder(state.dir) : ""); }
 
   function fillLuts() {
-    var folder = lutFolder(), names = folder ? state.LUT.list(folder) : [], sel = $("lutName"), chosen = state.LUT.pick(names, load("lutName", null));
+    var folder = lutFolder(), names = folder ? state.LUT.list(folder) : [], sel = $("lutName"), chosen = state.LUT.pick(names, load(lutKey("lutName"), null));
     sel.textContent = "";
     names.forEach(function (n) { var o = document.createElement("option"); o.value = o.textContent = n; sel.appendChild(o); });
     if (!names.length) { var o = document.createElement("option"); o.value = ""; o.textContent = "(no LUTs found)"; sel.appendChild(o); }
@@ -224,15 +228,15 @@
   function chooseLut() {
     var r = window.cep && window.cep.fs.showOpenDialogEx(false, false, "Choose a LUT", lutFolder() || null, ["cube", "3dl", "look", "itx"]);
     if (!r || r.err || !r.data || !r.data.length) return;
-    store("lutFolder", path.dirname(r.data[0]));
-    store("lutName", path.basename(r.data[0]));
+    store(lutKey("lutFolder"), path.dirname(r.data[0]));
+    store(lutKey("lutName"), path.basename(r.data[0]));
     fillLuts();
   }
 
   function wireLuts() {
     $("lutSat").value = load("lutSat", String(state.LUT.SATURATION));
     $("lutOnBegin").checked = load("lutOnBegin", true) !== false;
-    $("lutName").addEventListener("change", function () { store("lutName", this.value); });
+    $("lutName").addEventListener("change", function () { store(lutKey("lutName"), this.value); });
     $("lutSat").addEventListener("change", function () { store("lutSat", this.value.trim()); });
     $("lutOnBegin").addEventListener("change", function () { store("lutOnBegin", this.checked); });
     $("btnLutChoose").addEventListener("click", chooseLut);

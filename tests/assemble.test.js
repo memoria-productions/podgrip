@@ -16,7 +16,7 @@ test("assemble: nests are named as David names them: b = the wide, a = the dolly
 
 test("assemble: the synced episode, the promos apart, a nest per camera and the main sequence", () => {
   const { episode, promos } = split243();
-  const seqs = sequences(A.xml(episode, { ep: "243", promos }));
+  const seqs = sequences(A.xml(episode, { ep: "243", show: "classical_et_cetera", promos }));
   assert.deepEqual(seqs.map((s) => X.textOf(s, "name")), ["classical_et_cetera_243 (Sync)", "classical_et_cetera_243 promos (Sync)",
     "243_b_cam", "243_a_cam", "classical_et_cetera_243"]);
   // No multiclip: Premiere starts every XML angle at its file's first frame, which puts staggered cameras out of sync.

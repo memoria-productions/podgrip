@@ -20,6 +20,7 @@ Early. What works today:
   - To set up an episode:
     - Copy the media into `media\captured\footage` and `sync_sound`.
     - Copy your template into `<episode>\project_files\premiere\`, rename it (for example `classical_et_cetera_245.prproj`) and open it.
+  - **Any show:** everything is named after the show, read off the project file's name: what comes before the episode number. `margin_notes_015_25.2.prproj` gives `margin_notes_015 (Sync)`, `margin_notes_015 (Program)` and `margin_notes_015_assembly.xml`. The Episode box shows the show it found. The command line takes the show's folder name instead (`<show>\<season>\<episode>`), or `--show`.
   - Then press **Begin episode assembly**. The panel:
     1. renames the template's `###` sequences to the episode number;
     2. reads the timecode and syncs;

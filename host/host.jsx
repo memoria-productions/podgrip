@@ -4,7 +4,7 @@
  * Everything returns a JSON string: { ok: true, ... } or { ok: false, error }.
  *
  *   PG.ping()                         Premiere version and the open project's path
- *   PG.renameTemplateSequences(ep)    "classical_et_cetera_###…" -> "classical_et_cetera_<ep>…" (David's template)
+ *   PG.renameTemplateSequences(ep)    "<show>_###…" -> "<show>_<ep>…" (the show's template)
  *   PG.findBin(name)                  is there already a bin of that name at the top of the project? (and what's in it)
  *   PG.importXml(file, binName)       import an FCP7 XML into a top-level bin, with no dialog
  *   PG.placeMulticam(mc, program)     put <ep>_mc on V1 of the program sequence at the start, video only, mics untouched
